@@ -12,4 +12,17 @@ test_that("multiplication works", {
   expect_equal(2 * 2, 4)
 })
 
+test_that("can add a target function"{
+  addTargetFunctions( lm, dplyr::summarise )
 
+
+  addTargetFunctions(lm)
+  addTargetFunctions(new.env)
+  addTargetFunctions(ls)
+
+  # FIND OUT WHAT THESE DO AND TEST THEM
+  #createTargetFunctions( 1 )
+  #createTargetFunctions( NULL )
+  #createTargetFunctions( a + 1 )
+  #createTargetFunctions( 1 + 2 )
+})
