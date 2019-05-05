@@ -205,13 +205,23 @@ get_functions= function( expression, needs_substitute = TRUE ){
       prev_record = list( first_use =   lubridate::now(tzone = 'UTC'),
                           most_recent_use = lubridate::now(tzone = 'UTC'),
                           total_uses = 1,
-                          bucket_id = 1 )
+                          bucket_id = nextBucket(NULL) )
     } else {
+      if ( is.null( prev_record$bucket_id )){
+        prev_record$bucket_id = nextBucket(c())
+      }
+      bucket_timer = as.numeric( getDurationFromBucketId( prev_record$bucket_id ) )
+      if( difftime(prev_record$most_recent_use + bucket_timer, lubridate::now() ) > 0 ){
+        next_bucket = nextBucket( prev_record$bucket_id )
+      } else {
+        next_bucket = nextBucket( prev_record$bucket_id )
+      }
+
       prev_record  = list(
         first_use= prev_record$first_use,
         most_recent_use = lubridate::now(tzone= "UTC"),
         total_uses = prev_record$total_uses + 1,
-        bucket_id = prev_record$bucket_id + 1
+        bucket_id = nextBucket( prev_record$bucket_id )
         )
     }
     #names( prev_record ) = c( 'first_use', 'most_recent_use', 'total_uses')
@@ -310,16 +320,40 @@ showTargetFunctions = function(){
   ls ( storage_hash_table)
 }
 
+nextBucket = function(bucket_id ){
+  if ( is.null(bucket_id) | length( bucket_id) == 0){
+    1
+  }else if ( bucket_id < 6 ){
+    bucket_id + 1
+  } else {
+    bucket_id
+  }
+}
+
+getDurationFromBucketId = function(bucket_id){
+  sapply( bucket_id, function(a){
+  switch( as.character(a) ,
+          '1' = as.numeric( lubridate::minutes(10 )),
+          '2' = as.numeric( lubridate::minutes(60 )),
+          '3' = as.numeric( lubridate::hours(6 )),
+          '4' = as.numeric( lubridate::hours(24 )),
+          '5' = as.numeric( lubridate::days(7 )),
+          '6' = as.numeric( lubridate::days(30 ))
+          )})
+}
+
+
 #'
 #'
 #'
 #' @import lubridate
 #' @import dplyr
 #' @import tibble
-reminder = function(){
+reminder = function( num_functions = 5 ){
 
   convertEnvToDataFrame  = function( call_counts_hash_table ){
     result = eapply(call_counts_hash_table, function(a){
+      a$bucket_id = if(  'bucket_id' %in%  names(a) ) { a$bucket_id } else { nextBucket(c()); }
       a
     })
 
@@ -327,7 +361,8 @@ reminder = function(){
       dplyr::as_tibble(rownames = 'function_name') %>%
       dplyr::mutate_all(unlist) %>%
       mutate( first_use = lubridate::as_datetime(first_use ),
-              most_recent_use = lubridate::as_datetime(most_recent_use )
+              most_recent_use = lubridate::as_datetime(most_recent_use ),
+
       )
     df
   }
@@ -335,7 +370,7 @@ reminder = function(){
   df = convertEnvToDataFrame( call_counts_hash_table )
 
   #this becomes a default actually!
-  df$bucket_timer = as.numeric( lubridate::minutes(1) )
+  df$bucket_timer = getDurationFromBucketId(df$bucket_id )
   df = df %>%
     mutate(
       review_timer = most_recent_use + bucket_timer,
@@ -346,9 +381,11 @@ reminder = function(){
       ) )
 
 
+
+
   df %>%
     filter(needs_review) %>%
-    top_n( 5, desc(review_timer ))
+    top_n( num_functions, desc(review_timer ))
 
   #how to do the algorithm?
 
