@@ -90,11 +90,16 @@ call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path ) #new.env
 storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
 storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
-removeTaskCallback("addCallCounts")
-addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = call_counts_hash_table)
 
 
+#' @export
+initRemembr = function(){
+  removeTaskCallback("addCallCounts")
+  addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = call_counts_hash_table)
+  invisible(TRUE)
+}
 
+initRemembr()
 #' @import rlang
 #' @import pryr
 #' @import globals
@@ -474,7 +479,7 @@ remindPackage = function( packageName ){
 
 #' @import crayon
 #' @export
-reminderText = function(){
+remindMe = function(){
   df = convertCallCountsToHashTable(call_counts_hash_table )
 
 
