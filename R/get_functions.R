@@ -101,8 +101,9 @@ initRemembr = function(){
 
 initRemembr()
 #' @import rlang
-#' @import pryr
-#' @import globals
+#' @importFrom pryr standardise_call
+#' @importFrom pryr where
+#' @importFrom globals walkAST
 #' @import lubridate
 get_functions= function( expression, needs_substitute = TRUE ){
   #print("analyzing functions")
@@ -358,7 +359,6 @@ getDurationFromBucketId = function(bucket_id){
 #'
 #' @import lubridate
 #' @import dplyr
-#' @import tibble
 convertCallCountsToHashTable = function( call_counts_hash_table ){
   convertEnvToDataFrame  = function( call_counts_hash_table ){
     result = eapply(call_counts_hash_table, function(a){
