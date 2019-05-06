@@ -47,7 +47,7 @@ addCallCountsCallback = function(expr, value, status, visible, data){
 
 
   if ( opts$should_persist ){
-    saveRDS(  call_counts_hash_table, call_counts_hash_table_path )
+    saveRDS(  call_counts_hash_table, call_counts_hash_table_path, compress = TRUE )
 
   }
   TRUE
@@ -95,7 +95,10 @@ addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = call_cou
 
 
 
-
+#' @import rlang
+#' @import pryr
+#' @import globals
+#' @import lubridate
 get_functions= function( expression, needs_substitute = TRUE ){
   #print("analyzing functions")
 
@@ -293,6 +296,7 @@ getFunctionPropertiesFromQuosure = function(qq ){
   result
 }
 
+#' @export
 addDocumentationURL = function( targetFunction, urls ){
   #addTargetFunction( targetFunction )  #not sure how to do this part!
 
@@ -309,6 +313,7 @@ addDocumentationURL = function( targetFunction, urls ){
   #but the plan here is you can type in a url and this will persist it along with your function name.  easy breezy.
 }
 
+#' @export
 getDocumentationURL = function( targetFunction ){
   qq = rlang::enquo( targetFunction )
 
@@ -343,14 +348,13 @@ getDurationFromBucketId = function(bucket_id){
 }
 
 
-#'
+
 #'
 #'
 #' @import lubridate
 #' @import dplyr
 #' @import tibble
-reminder = function( num_functions = 5 ){
-
+convertCallCountsToHashTable = function( call_counts_hash_table ){
   convertEnvToDataFrame  = function( call_counts_hash_table ){
     result = eapply(call_counts_hash_table, function(a){
       a$bucket_id = if(  'bucket_id' %in%  names(a) ) { a$bucket_id } else { nextBucket(c()); }
@@ -372,6 +376,7 @@ reminder = function( num_functions = 5 ){
   #this becomes a default actually!
   df$bucket_timer = getDurationFromBucketId(df$bucket_id )
   df = df %>%
+    tidyr::separate(function_name, c('package','name'), sep = '::', remove = FALSE) %>%
     mutate(
       review_timer = most_recent_use + bucket_timer,
       needs_review = ifelse(
@@ -380,11 +385,21 @@ reminder = function( num_functions = 5 ){
         TRUE
       ) )
 
+  df
+}
+
+#'
+reminder = function( num_functions = 5 ){
+
+
+  df = convertCallCountsToHashTable(call_counts_hash_table )
+
 
 
 
   df %>%
     filter(needs_review) %>%
+    filter( package != "R_GlobalEnv") %>%
     top_n( num_functions, desc(review_timer ))
 
   #how to do the algorithm?
@@ -399,4 +414,95 @@ reminder = function( num_functions = 5 ){
 
   #call_counts_hash_table
 
+}
+
+timeStampToIntervalString = function(times){
+  timeDiffs = (difftime( lubridate::now(), times, units = 'mins'))
+
+  getDiff = function( d ){
+    if ( d < 1 ){
+      return ('less than a minute ago')
+    } else if ( d < 60 ){
+      return(paste0( floor(d), ' minutes ago') )
+    } else if ( d < 60*24 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/60), ' hour ago') )
+      } else{
+        return(paste0( floor(d/60), ' hours ago') )
+      }
+
+    }else if ( d < 60*24*30 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/(24*60)), ' day ago') )
+      } else{
+        return(paste0( floor(d/(24*60)), ' days ago') )
+      }
+
+    } else if ( d < 60*24*30*12 ) {
+      return(paste0( floor(d/(24*60*30)), ' months ago') )
+    } else {
+      return( 'more than a year ago')
+    }
+
+  }
+
+  sapply( timeDiffs, getDiff)
+}
+
+
+#' @export
+remindPackage = function( packageName ){
+  df = convertCallCountsToHashTable(call_counts_hash_table ) %>%
+    filter( package == !!(packageName )) %>%
+    arrange( ( review_timer ))
+
+  package_string = df %>%
+    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) ,
+                          " used ", crayon::bgWhite(total_uses), " times.  ",
+                          "Last used ",
+                          timeStampToIntervalString( most_recent_use ),
+                          ".",
+                          ifelse( needs_review, " Needs review.", "")
+                          ) ) %>%
+    select( str )
+
+  cat(paste0( "\nHere is everything to review from the ",crayon::bgWhite(packageName) , " package\n"))
+  cat(paste(package_string$str, collapse = "\n"))
+
+  invisible(df )
+}
+
+#' @import crayon
+#' @export
+reminderText = function(){
+  df = convertCallCountsToHashTable(call_counts_hash_table )
+
+
+  package_reminders = df %>%
+    filter( package != "R_GlobalEnv") %>%
+    filter(needs_review) %>%
+    group_by( package) %>%
+    arrange( ( review_timer)) %>%
+    filter( row_number() == 1) %>%
+    select( package, function_name, review_timer)%>%
+    ungroup() %>%
+    top_n( 3, desc(review_timer ))
+
+  top_5 = reminder( 5 )
+
+  result =top_5 %>%
+    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package") ) %>%
+    select( str )
+
+  package_string =package_reminders %>%
+    mutate( str = paste0( "(", row_number(), ") " , crayon::bgWhite(package)) ) %>%
+    select( str )
+
+  cat("Based on your previous R usage, we recommend that you review the following methods\n")
+  cat(paste(result$str, collapse = "\n"))
+
+  cat("\n\nYou will have upcoming review in the following packages\n")
+  cat(paste(package_string$str, collapse = "\n"))
+
+  invisible(result)
 }

@@ -1,12 +1,12 @@
-Package: leitnr
-Title: What the Package Does (One Line, Title Case)
+Package: remembr
+Title: Spaced Repetition Practice for Learning R
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Daniel",
+           family = "Jacobs",
            role = c("aut", "cre"),
-           email = "first.last@example.com")
-Description: What the package does (one paragraph).
+           email = "djacobs7@gmail.com")
+Description: This package helps you learn R through spaced repetition.  IT tracks the commands that you enter in R, and reminds you when you need to practice them.  It helps you engrain new R commands in your longterm memory.
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
