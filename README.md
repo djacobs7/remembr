@@ -1,4 +1,4 @@
-==# remembr
+## remembr
 
 Learn new r methods and remember them.  Uses spaced repetition to help you learn to R language and it's millions of packages.
 
