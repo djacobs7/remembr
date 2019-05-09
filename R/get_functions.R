@@ -85,7 +85,7 @@ loadOrCreateEnv = function(path = NULL){
 
 opts = new.env( hash = TRUE, parent = emptyenv())
 opts[["should_persist"]] = TRUE
-storage_file_directory = "~/.rleitner/"
+storage_file_directory = "~/.rRemembr/"
 
 if ( opts[["should_persist"]]){
   dir.create(storage_file_directory,showWarnings = FALSE)
@@ -614,12 +614,18 @@ remindMe = function(){
   invisible(result)
 }
 
-
+#'
+#'
+#' Adds a line to your .Rprofile so that remembr runs by default.
+#' Can be uninstalled at any time with uninstall_remembr
 #' @export
 install_remembr = function(){
   remembrinstall::install()
 }
 
+#'
+#' Removes remembr from your rprofile
+#'
 #' @export
 uninstall_remembr = function(){
   remembrinstall::uninstall()
