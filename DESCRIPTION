@@ -13,6 +13,12 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 6.1.1
 Imports: 
-    magrittr
+    magrittr,
+    crayon,
+    dplyr,
+    lubridate,
+    rlang,
+    globals,
+    pryr
 Suggests: 
     testthat

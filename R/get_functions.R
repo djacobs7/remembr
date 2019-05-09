@@ -76,6 +76,13 @@ loadOrCreateEnv = function(path = NULL){
   }
 }
 
+
+#can also use .first and .last
+#https://www.statmethods.net/interface/customizing.html
+#https://github.com/HenrikBengtsson/startup/blob/master/R/startup.R
+
+#https://github.com/HenrikBengtsson/startup/blob/master/R/install.R
+
 opts = new.env( hash = TRUE, parent = emptyenv())
 opts[["should_persist"]] = TRUE
 storage_file_directory = "~/.rleitner/"
@@ -220,7 +227,7 @@ get_functions= function( expression, needs_substitute = TRUE ){
         prev_record$bucket_id = nextBucket(c())
       }
       bucket_timer = as.numeric( getDurationFromBucketId( prev_record$bucket_id ) )
-      if( difftime(prev_record$most_recent_use + bucket_timer, lubridate::now() ) > 0 ){
+      if( difftime(prev_record$most_recent_use + bucket_timer, lubridate::now(tzone = 'UTC') ) > 0 ){
         next_bucket = nextBucket( prev_record$bucket_id )
       } else {
         next_bucket = nextBucket( prev_record$bucket_id )
@@ -481,7 +488,6 @@ remindPackage = function( packageName ){
 #' @export
 remindMe = function(){
   df = convertCallCountsToHashTable(call_counts_hash_table )
-
 
   package_reminders = df %>%
     filter( package != "R_GlobalEnv") %>%
