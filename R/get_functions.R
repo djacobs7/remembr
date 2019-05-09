@@ -227,17 +227,20 @@ get_functions= function( expression, needs_substitute = TRUE ){
         prev_record$bucket_id = nextBucket(c())
       }
       bucket_timer = as.numeric( getDurationFromBucketId( prev_record$bucket_id ) )
-      if( difftime(prev_record$most_recent_use + bucket_timer, lubridate::now(tzone = 'UTC') ) > 0 ){
+      now_t = lubridate::now(tzone = 'UTC')
+      dt = difftime(prev_record$most_recent_use + bucket_timer,now_t  )
+
+       if(  dt < 0 ){
         next_bucket = nextBucket( prev_record$bucket_id )
       } else {
-        next_bucket = nextBucket( prev_record$bucket_id )
+        next_bucket = prev_record$bucket_id
       }
 
       prev_record  = list(
         first_use= prev_record$first_use,
         most_recent_use = lubridate::now(tzone= "UTC"),
         total_uses = prev_record$total_uses + 1,
-        bucket_id = nextBucket( prev_record$bucket_id )
+        bucket_id = next_bucket
         )
     }
     #names( prev_record ) = c( 'first_use', 'most_recent_use', 'total_uses')
@@ -455,9 +458,69 @@ timeStampToIntervalString = function(times){
     } else {
       return( 'more than a year ago')
     }
-
   }
+  sapply( timeDiffs, getDiff)
+}
 
+
+timeStampToIntervalString = function(times){
+  timeDiffs = (difftime( lubridate::now(), times, units = 'mins'))
+
+  getDiff = function( d ){
+    if ( d < 1 ){
+      return ('less than a minute ago')
+    } else if ( d < 60 ){
+      return(paste0( floor(d), ' minutes ago') )
+    } else if ( d < 60*24 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/60), ' hour ago') )
+      } else{
+        return(paste0( floor(d/60), ' hours ago') )
+      }
+
+    }else if ( d < 60*24*30 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/(24*60)), ' day ago') )
+      } else{
+        return(paste0( floor(d/(24*60)), ' days ago') )
+      }
+
+    } else if ( d < 60*24*30*12 ) {
+      return(paste0( floor(d/(24*60*30)), ' months ago') )
+    } else {
+      return( 'more than a year ago')
+    }
+  }
+  sapply( timeDiffs, getDiff)
+}
+timeStampToIntervalStringFuture = function(times){
+  timeDiffs = (difftime( times, lubridate::now(), units = 'mins'))
+
+  getDiff = function( d ){
+    if ( d < 1 ){
+      return ('less than a minute from now')
+    } else if ( d < 60 ){
+      return(paste0( floor(d), ' minutes from now') )
+    } else if ( d < 60*24 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/60), ' hour from now') )
+      } else{
+        return(paste0( floor(d/60), ' hours from now') )
+      }
+
+    }else if ( d < 60*24*30 ){
+      if ( floor( d/60) == 1){
+        return(paste0( floor(d/(24*60)), ' day from now') )
+      } else{
+        return(paste0( floor(d/(24*60)), ' days from now') )
+      }
+
+    } else if ( d < 60*24*30*12 ) {
+      return(paste0( floor(d/(24*60*30)), ' months from now') )
+    } else {
+      return( 'more than a year from now')
+    }
+  }
   sapply( timeDiffs, getDiff)
 }
 
@@ -474,11 +537,35 @@ remindPackage = function( packageName ){
                           "Last used ",
                           timeStampToIntervalString( most_recent_use ),
                           ".",
-                          ifelse( needs_review, " Needs review.", "")
+                          ifelse( needs_review, " Needs review.",
+                                  paste0( "Needs review in ", timeStampToIntervalStringFuture( review_timer)) )
                           ) ) %>%
     select( str )
 
   cat(paste0( "\nHere is everything to review from the ",crayon::bgWhite(packageName) , " package\n"))
+  cat(paste(package_string$str, collapse = "\n"))
+
+  invisible(df )
+}
+
+#' @export
+upcomingReminders = function(){
+  df = convertCallCountsToHashTable(call_counts_hash_table ) %>%
+    arrange( ( review_timer )) %>%
+    filter( row_number() < 10 )
+
+  package_string = df %>%
+    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) ,
+                          " used ", crayon::bgWhite(total_uses), " times.  ",
+                          "Last used ",
+                          timeStampToIntervalString( most_recent_use ),
+                          ".",
+                          ifelse( needs_review, " Needs review. ",
+                                  paste0( " Needs review ", timeStampToIntervalStringFuture( review_timer)) )
+    ) ) %>%
+    select( str )
+
+  cat(paste0( "\nHere is everything to review\n"))
   cat(paste(package_string$str, collapse = "\n"))
 
   invisible(df )
@@ -501,6 +588,11 @@ remindMe = function(){
 
   top_5 = reminder( 5 )
 
+  if ( nrow( top_5) == 0 ){
+    cat("You have no methods to review at this time.  You can use remindPackage( packageName ) to see upcoming review items for a specific package.")
+    return( invisible( df ))
+  }
+
   result =top_5 %>%
     mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package") ) %>%
     select( str )
@@ -512,8 +604,12 @@ remindMe = function(){
   cat("Based on your previous R usage, we recommend that you review the following methods\n")
   cat(paste(result$str, collapse = "\n"))
 
-  cat("\n\nYou will have upcoming review in the following packages\n")
-  cat(paste(package_string$str, collapse = "\n"))
+#  cat("\n\nYou will have upcoming review in the following packages\n")
+#  cat(paste(package_string$str, collapse = "\n"))
+
+
+  cat("To review a method, just call it in the console.")
+
 
   invisible(result)
 }
