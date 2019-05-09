@@ -19,6 +19,8 @@ Imports:
     lubridate,
     rlang,
     globals,
-    pryr
+    pryr,
+    remembrinstall
 Suggests: 
     testthat
+Remotes: djacobs7/remembrinstall

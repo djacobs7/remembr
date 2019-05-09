@@ -613,3 +613,14 @@ remindMe = function(){
 
   invisible(result)
 }
+
+
+#' @export
+install_remembr = function(){
+  remembrinstall::install()
+}
+
+#' @export
+uninstall_remembr = function(){
+  remembrinstall::uninstall()
+}
