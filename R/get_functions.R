@@ -624,8 +624,10 @@ flashCards = function(num_flashcards = 5){
     filter( package != "R_GlobalEnv") %>%
     top_n( num_flashcards, desc(review_timer ))
 
-  readline( "Are you ready to start your flashcards? Press any key")
-  result = ''
+
+  cat("Get ready to start your flashcards.\n")
+  cat("Look for help in the browser window.\n")
+  readline( "Press any key to start\n")
   for ( i in 1:nrow(stack)){
     row = stack[i,]
     with(data = row, expr = {
