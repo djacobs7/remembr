@@ -614,6 +614,54 @@ remindMe = function(){
   invisible(result)
 }
 
+#' @export
+flashCards = function(num_flashcards = 5){
+
+  df = convertCallCountsToHashTable(call_counts_hash_table )
+
+  stack = df %>%
+    filter(needs_review) %>%
+    filter( package != "R_GlobalEnv") %>%
+    top_n( num_flashcards, desc(review_timer ))
+
+  readline( "Are you ready to start your flashcards? Press any key")
+
+  for ( i in 1:nrow(stack)){
+    row = stack[i,]
+    with(data = row, expr = {
+      str = paste0( "(", i, ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
+      prompt = paste0( "Do you feel comfortable with ", str ,"? (y/n) " )
+      h = help( name, package = (package), help_type = "html")
+
+        print(h)
+      cat(prompt)
+      cat("\n")
+      yesNo = readline()
+
+      keyname = paste0( package, "::", name )
+      prev_record = call_counts_hash_table[[keyname]]
+
+      if( is.null(prev_record)){
+        error("record not found")
+      }
+
+
+      if( yesNo == 'y'| yesNo == 'Yes' | yesNo == 'YES'){
+        prev_record$bucket_id = nextBucket( prev_record$bucket_id )
+      } else if ( yesNo == 'n'| yesNo == 'No' | yesNo == 'NO') {
+
+      }
+
+      call_counts_hash_table[[keyname]] = prev_record
+      #utils::askYesNo( prompt = "" )
+    })
+
+
+
+
+  }
+}
+
 #'
 #'
 #' Adds a line to your .Rprofile so that remembr runs by default.

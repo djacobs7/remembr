@@ -2,6 +2,7 @@
 
 export("%>%")
 export(addDocumentationURL)
+export(flashCards)
 export(getDocumentationURL)
 export(initRemembr)
 export(install_remembr)
