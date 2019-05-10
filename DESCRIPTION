@@ -15,11 +15,11 @@ RoxygenNote: 6.1.1
 Imports: 
     magrittr,
     crayon,
-    dplyr,
-    lubridate,
-    rlang,
-    globals,
-    pryr,
+    dplyr (>= 0.7.8),
+    lubridate (>= 1.7.4),
+    rlang (>= 0.3.0.1),
+    globals  (>= 0.12.4),
+    pryr (>= 0.1.4),
     remembrinstall
 Suggests: 
     testthat
