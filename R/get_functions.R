@@ -608,7 +608,7 @@ remindMe = function(){
 #  cat(paste(package_string$str, collapse = "\n"))
 
 
-  cat("To review a method, just call it in the console.")
+  cat(paste0( "\n To review a method, just call it in the console or call ", crayon::bgWhite( 'flashCards()' ) ,"."))
 
 
   invisible(result)
@@ -625,12 +625,12 @@ flashCards = function(num_flashcards = 5){
     top_n( num_flashcards, desc(review_timer ))
 
   readline( "Are you ready to start your flashcards? Press any key")
-
+  result = ''
   for ( i in 1:nrow(stack)){
     row = stack[i,]
     with(data = row, expr = {
-      str = paste0( "(", i, ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
-      prompt = paste0( "Do you feel comfortable with ", str ,"? (y/n) " )
+      str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
+      prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n) " )
       h = help( name, package = (package), help_type = "html")
 
         print(h)
@@ -650,6 +650,8 @@ flashCards = function(num_flashcards = 5){
         prev_record$bucket_id = nextBucket( prev_record$bucket_id )
       } else if ( yesNo == 'n'| yesNo == 'No' | yesNo == 'NO') {
 
+      } else if ( yesNo == 'q' | yesNo == 'Q' | yesNo == 'QUIT'| yesNo == 'quit' ){
+        break
       }
 
       call_counts_hash_table[[keyname]] = prev_record
