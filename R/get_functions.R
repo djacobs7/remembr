@@ -390,8 +390,13 @@ convertCallCountsToHashTable = function( call_counts_hash_table ){
 
   #this becomes a default actually!
   df$bucket_timer = getDurationFromBucketId(df$bucket_id )
+
+
   df = df %>%
     tidyr::separate(function_name, c('package','name'), sep = '::', remove = FALSE) %>%
+    mutate(package = ifelse( function_name =="::", 'base', package),
+           name = ifelse( function_name =="::", '::', name)
+           ) %>%
     mutate(
       review_timer = most_recent_use + bucket_timer,
       needs_review = ifelse(
@@ -620,9 +625,14 @@ flashCards = function(num_flashcards = 5){
   df = convertCallCountsToHashTable(call_counts_hash_table )
 
   stack = df %>%
-    filter(needs_review) %>%
+  #  filter(needs_review) %>%
     filter( package != "R_GlobalEnv") %>%
     top_n( num_flashcards, desc(review_timer ))
+
+  if ( nrow( stack )== 0){
+    cat("You have nothing to review")
+    return(invisible(NULL))
+  }
 
 
   cat("Get ready to start your flashcards.\n")
@@ -633,6 +643,10 @@ flashCards = function(num_flashcards = 5){
     with(data = row, expr = {
       str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
       prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n) " )
+
+      if (is.na( package  )){
+        package = 'base'
+      }
       h = help( name, package = (package), help_type = "html")
 
         print(h)
@@ -681,4 +695,19 @@ install_remembr = function(){
 #' @export
 uninstall_remembr = function(){
   remembrinstall::uninstall()
+}
+
+
+extract_help <- function(pkg, fn = NULL, to = c("txt", "html", "latex", "ex")){
+  to <- match.arg(to)
+  rdbfile <- file.path(find.package(pkg), "help", pkg)
+  rdb <- tools:::fetchRdDB(rdbfile, key = fn)
+  convertor <- switch(to,
+                      txt   = tools::Rd2txt,
+                      html  = tools::Rd2HTML,
+                      latex = tools::Rd2latex,
+                      ex    = tools::Rd2ex
+  )
+  f <- function(x) capture.output(convertor(x))
+  if(is.null(fn)) lapply(rdb, f) else f(rdb)
 }
