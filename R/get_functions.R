@@ -686,6 +686,7 @@ flashCards = function(num_flashcards = 5){
 #' Can be uninstalled at any time with uninstall_remembr
 #' @export
 install_remembr = function(){
+  remembr::initRemembr()
   remembrinstall::install()
 }
 
