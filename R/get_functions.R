@@ -44,11 +44,11 @@ echoExpressionCallback = function(expr, value, status, visible, data){
 #' @return I guess this indicates if the callback succeeded?
 addCallCountsCallback = function(expr, value, status, visible, data){
 
-  get_functions( expr, needs_substitute = FALSE )
+  get_functions( expr, getCallCountsHashTable(), needs_substitute = FALSE )
 
 
   if ( opts$should_persist ){
-    saveRDS(  call_counts_hash_table, call_counts_hash_table_path, compress = TRUE )
+    saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
 
   }
   TRUE
@@ -67,7 +67,11 @@ showCallCounts = function(){
 
 
 loadOrCreateEnv = function(path = NULL){
-  if (!is.null(path) & file.exists(path)){
+  if ( is.null(path)){
+    return( new.env( hash = TRUE, parent = emptyenv()))
+  }
+
+  if (file.exists(path)){
     readRDS( path )
   } else {
     #http://adv-r.had.co.nz/Environments.html
@@ -99,15 +103,24 @@ storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_p
 storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
 
+getCallCountsHashTable = function(){
+  call_counts_hash_table
+}
 
 #' @export
 initRemembr = function(){
   removeTaskCallback("addCallCounts")
-  addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = call_counts_hash_table)
+  addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = getCallCountsHashTable())
   invisible(TRUE)
 }
 
 initRemembr()
+
+#'
+#'
+#' If call_counts_hash_table is NULL, then it will use a default value.
+#' Otherwise it needs an environment which is created like this new.env( hash = TRUE, parent = emptyenv())
+#'
 #' @importFrom rlang quo_set_expr
 #' @importFrom rlang quo_set_env
 #' @importFrom rlang quo_get_expr
@@ -119,7 +132,7 @@ initRemembr()
 #' @importFrom globals walkAST
 #' @importFrom lubridate now
 #' @importFrom lubridate days
-get_functions= function( expression, needs_substitute = TRUE ){
+get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE ){
   #print("analyzing functions")
 
   #TODO: not sure if this is necessary or helpful or doing the right hting
@@ -222,6 +235,9 @@ get_functions= function( expression, needs_substitute = TRUE ){
 
     #print( keyname )
 
+    if (is.null(call_counts_hash_table)){
+      call_counts_hash_table = getCallCountsHashTable()
+    }
     prev_record = call_counts_hash_table[[keyname]]
 
     if ( is.null (prev_record )){
@@ -271,7 +287,12 @@ getObjectFromName = function( name ){
 }
 
 
-
+#'
+#' Given an id, get the id for the next bucket
+#'
+#' If bucket_id is null, then start from 1
+#'
+#'
 nextBucket = function(bucket_id ){
   if ( is.null(bucket_id) | length( bucket_id) == 0){
     1
@@ -282,6 +303,10 @@ nextBucket = function(bucket_id ){
   }
 }
 
+
+#' Given a bucket id, return a timer for that bucket
+#'
+#'
 #' @importFrom lubridate minutes
 #' @importFrom lubridate hours
 #' @importFrom lubridate days

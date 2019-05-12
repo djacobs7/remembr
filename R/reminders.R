@@ -46,7 +46,7 @@ convertCallCountsToHashTable = function( call_counts_hash_table ){
 
 #'
 remindMeDataFrame = function( num_functions = 5 ){
-  df = convertCallCountsToHashTable(call_counts_hash_table )
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )
   df %>%
     filter( package != "R_GlobalEnv") %>%
     arrange((review_timer ))
@@ -62,7 +62,7 @@ remindMeDataFrame = function( num_functions = 5 ){
 #' @export
 remindPackage = function( packageNames = 'base', all = FALSE ){
   array = packageNames
-  df = convertCallCountsToHashTable(call_counts_hash_table )
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )
   if ( all == TRUE ){
     df = df %>%
       filter( package != "R_GlobalEnv") %>%
@@ -110,7 +110,7 @@ remindPackage = function( packageNames = 'base', all = FALSE ){
 #' Prints out the methods that will need to be reviewed next time you do a review
 #' @export
 upcomingReminders = function(num_methods = 10 ){
-  df = convertCallCountsToHashTable(call_counts_hash_table ) %>%
+  df = convertCallCountsToHashTable(getCallCountsHashTable() ) %>%
     arrange( ( review_timer )) %>%
     filter( row_number() < num_methods )
 
@@ -134,7 +134,7 @@ upcomingReminders = function(num_methods = 10 ){
 #' @import crayon
 #' @export
 remindMe = function( num_rows = 5) {
-  df = convertCallCountsToHashTable(call_counts_hash_table )
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )
 
   package_reminders = df %>%
     filter( package != "R_GlobalEnv") %>%
@@ -184,7 +184,7 @@ remindMe = function( num_rows = 5) {
 #' @export
 flashCards = function(num_flashcards = 5){
 
-  df = convertCallCountsToHashTable(call_counts_hash_table )
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )
 
   stack = df %>%
     #  filter(needs_review) %>%
@@ -217,6 +217,7 @@ flashCards = function(num_flashcards = 5){
       yesNo = readline()
 
       keyname = paste0( package, "::", name )
+      call_counts_hash_table = getCallCountsHashTable()
       prev_record = call_counts_hash_table[[keyname]]
 
       if( is.null(prev_record)){

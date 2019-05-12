@@ -2,35 +2,39 @@ context("test-find_expressions")
 
 test_that( "more use cases", {
 
-  clearCallCounts()
 
+
+  call_counts_hash_table = loadOrCreateEnv(NULL)
   testthat::expect_null(  call_counts_hash_table[['stats::lm']] )
   get_functions({ a = iris;
   model = lm( iris$Sepal.Length ~ iris$Petal.Length )
-  model = stats::lm( iris$Sepal.Length ~ iris$Petal.Length )} )
+  model = stats::lm( iris$Sepal.Length ~ iris$Petal.Length )} ,
+  call_counts_hash_table
+  )
+
+
 
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 2 )
 })
 
 test_that("multiplication works", {
-  clearCallCounts()
-
+  call_counts_hash_table = loadOrCreateEnv(NULL)
 #  expression  =
 
 #  createTargetFunctions(lm, dplyr::summarize)
 
   testthat::expect_null(  call_counts_hash_table[['stats::lm']] )
   get_functions({ a = iris;
-  model = lm( iris$Sepal.Length ~ iris$Petal.Length )} )
+  model = lm( iris$Sepal.Length ~ iris$Petal.Length )}, call_counts_hash_table  )
 
 
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
-  get_functions({ summary( data.frame( a = 2, b = 1))} )
+  get_functions({ summary( data.frame( a = 2, b = 1))} , call_counts_hash_table )
 
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
   testthat::expect_equal(  call_counts_hash_table[['base::summary']]$total_uses, 1 )
 
-  get_functions( {lm( iris$Sepal.Length ~ iris$Sepal.Width ) })
+  get_functions( {lm( iris$Sepal.Length ~ iris$Sepal.Width ) }, call_counts_hash_table )
 
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 2 )
 
@@ -41,11 +45,13 @@ test_that("multiplication works", {
 
 test_that("can create a function within an expression", {
 
-  clearCallCounts()
+  call_counts_hash_table = loadOrCreateEnv(NULL)
   get_functions({
     runLm = function(){ lm( iris$Sepal.Width ~ iris$Petal.Length ) }
     runLm()
-  })
+  },
+  call_counts_hash_table
+  )
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
 
 })
@@ -53,10 +59,11 @@ test_that("can create a function within an expression", {
 
 testthat::test_that("we handle namespaces properly", {
 
-  clearCallCounts()
+
+  call_counts_hash_table = loadOrCreateEnv(NULL)
   get_functions({
     stats::lm( iris$Sepal.Width ~ iris$Petal.Length )
-  })
+  }, call_counts_hash_table)
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
 
 })
