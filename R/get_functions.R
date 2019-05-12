@@ -14,7 +14,7 @@ print_ast= function( expression ){
 
 #https://stat.ethz.ch/R-manual/R-devel/library/base/html/taskCallback.html
 
-#'
+#' This just echos the input expressoion
 #'
 #' @param param s-language expression
 #' @param value result of the expression evaluation
@@ -31,7 +31,8 @@ echoExpressionCallback = function(expr, value, status, visible, data){
 }
 
 
-#'
+#' This is the main callback.  It can get called on any expression.
+#'  If you call it, it will modify the your state
 #'
 #' @param param s-language expression
 #' @param value result of the expression evaluation
@@ -107,11 +108,17 @@ initRemembr = function(){
 }
 
 initRemembr()
-#' @import rlang
+#' @importFrom rlang quo_set_expr
+#' @importFrom rlang quo_set_env
+#' @importFrom rlang quo_get_expr
+#' @importFrom rlang eval_tidy
+#' @importFrom rlang is_quosure
+#' @importFrom rlang get_expr
 #' @importFrom pryr standardise_call
 #' @importFrom pryr where
 #' @importFrom globals walkAST
-#' @import lubridate
+#' @importFrom lubridate now
+#' @importFrom lubridate days
 get_functions= function( expression, needs_substitute = TRUE ){
   #print("analyzing functions")
 
@@ -265,82 +272,6 @@ getObjectFromName = function( name ){
 
 
 
-
-
-addTargetFunctions = function( ... ){
-  arguments = rlang::enquos(...)
-
-
-  lapply( arguments, function(qq){
-    ll = getFunctionPropertiesFromQuosure(qq )
-    storage_hash_table[[ ll$keyname ]] = ll
-  })
-  storage_hash_table
-}
-
-
-getFunctionPropertiesFromQuosure = function(qq ){
-  ##make sure you pass in a quosure
-  if( rlang::is_quosure(qq)){
-    keyname = NULL
-    substituted =  rlang::get_expr(qq)
-    if( is.call(substituted  )){ #handle function calls
-      function_name = substituted[[1]]
-      if (function_name == "::"){  #handle specific cases where the called function is `::`.  Like when we call  addTargetFunctions( dplyr::summarise )
-        substituted = pryr::standardise_call( substituted )
-        keyname = paste0( substituted$pkg, "::", substituted$name)
-      }
-    }
-
-    ref = rlang::eval_tidy( qq )
-    environment = environment( rlang::eval_tidy( qq ))
-    environmentName = environmentName( environment )
-
-    if ( is.null(keyname)){
-      keyname = paste0( environmentName, '::' , deparse( rlang::quo_get_expr ( qq )  ) )
-    }
-
-    result = list(
-      ref = ref,
-      environment = environment,
-      environmentName = environmentName,
-      keyname = keyname
-    )
-  } else{
-    throw("This function expects a quosure")
-  }
-  result
-}
-
-#' @export
-addDocumentationURL = function( targetFunction, urls ){
-  #addTargetFunction( targetFunction )  #not sure how to do this part!
-
-  qq = rlang::enquo( targetFunction )
-
-  props = getFunctionPropertiesFromQuosure( qq )
-  keyname = props$keyname
-  present_list = storage_hash_table[[keyname]]
-  if ( is.null(present_list)){
-    throw("make sure your target function is already added. FIXME!! add addTargetFunction atop")
-  }
-  present_list$urls = unique( c( present_list$urls, urls ) )
-  storage_hash_table[[keyname]] = present_list
-  #but the plan here is you can type in a url and this will persist it along with your function name.  easy breezy.
-}
-
-#' @export
-getDocumentationURL = function( targetFunction ){
-  qq = rlang::enquo( targetFunction )
-
-  props = getFunctionPropertiesFromQuosure( qq )
-  keyname = props$keyname
-  storage_hash_table[[keyname]]$urls
-}
-showTargetFunctions = function(){
-  ls ( storage_hash_table)
-}
-
 nextBucket = function(bucket_id ){
   if ( is.null(bucket_id) | length( bucket_id) == 0){
     1
@@ -351,6 +282,9 @@ nextBucket = function(bucket_id ){
   }
 }
 
+#' @importFrom lubridate minutes
+#' @importFrom lubridate hours
+#' @importFrom lubridate days
 getDurationFromBucketId = function(bucket_id){
   sapply( bucket_id, function(a){
   switch( as.character(a) ,
@@ -365,350 +299,4 @@ getDurationFromBucketId = function(bucket_id){
 
 
 
-#'
-#'
-#' @import lubridate
-#' @import dplyr
-convertCallCountsToHashTable = function( call_counts_hash_table ){
-  convertEnvToDataFrame  = function( call_counts_hash_table ){
-    result = eapply(call_counts_hash_table, function(a){
-      a$bucket_id = if(  'bucket_id' %in%  names(a) ) { a$bucket_id } else { nextBucket(c()); }
-      a
-    })
 
-    df =do.call( rbind, result) %>%
-      dplyr::as_tibble(rownames = 'function_name') %>%
-      dplyr::mutate_all(unlist) %>%
-      mutate( first_use = lubridate::as_datetime(first_use ),
-              most_recent_use = lubridate::as_datetime(most_recent_use ),
-
-      )
-    df
-  }
-
-  df = convertEnvToDataFrame( call_counts_hash_table )
-
-  #this becomes a default actually!
-  df$bucket_timer = getDurationFromBucketId(df$bucket_id )
-
-
-  df = df %>%
-    tidyr::separate(function_name, c('package','name'), sep = '::', remove = FALSE) %>%
-    mutate(package = ifelse( function_name =="::", 'base', package),
-           name = ifelse( function_name =="::", '::', name)
-           ) %>%
-    mutate(
-      review_timer = most_recent_use + bucket_timer,
-      needs_review = ifelse(
-        difftime(review_timer, lubridate::now() ) > 0 ,
-        FALSE,
-        TRUE
-      ) )
-
-  df
-}
-
-#'
-reminder = function( num_functions = 5 ){
-
-
-  df = convertCallCountsToHashTable(call_counts_hash_table )
-
-
-
-
-  df %>%
-    filter(needs_review) %>%
-    filter( package != "R_GlobalEnv") %>%
-    top_n( num_functions, desc(review_timer ))
-
-  #how to do the algorithm?
-
-  #1 ) Compute a bucket for each thing
-  #2 ) Default bucket is immediate.
-
-  #buckets: 10 minutes; 1 hour; 1 day; 1 week; 1 month
-
-  #3 ) compute bucket
-  #4 )
-
-  #call_counts_hash_table
-
-}
-
-timeStampToIntervalString = function(times){
-  timeDiffs = (difftime( lubridate::now(), times, units = 'mins'))
-
-  getDiff = function( d ){
-    if ( d < 1 ){
-      return ('less than a minute ago')
-    } else if ( d < 60 ){
-      return(paste0( floor(d), ' minutes ago') )
-    } else if ( d < 60*24 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/60), ' hour ago') )
-      } else{
-        return(paste0( floor(d/60), ' hours ago') )
-      }
-
-    }else if ( d < 60*24*30 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/(24*60)), ' day ago') )
-      } else{
-        return(paste0( floor(d/(24*60)), ' days ago') )
-      }
-
-    } else if ( d < 60*24*30*12 ) {
-      return(paste0( floor(d/(24*60*30)), ' months ago') )
-    } else {
-      return( 'more than a year ago')
-    }
-  }
-  sapply( timeDiffs, getDiff)
-}
-
-
-timeStampToIntervalString = function(times){
-  timeDiffs = (difftime( lubridate::now(), times, units = 'mins'))
-
-  getDiff = function( d ){
-    if ( d < 1 ){
-      return ('less than a minute ago')
-    } else if ( d < 60 ){
-      return(paste0( floor(d), ' minutes ago') )
-    } else if ( d < 60*24 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/60), ' hour ago') )
-      } else{
-        return(paste0( floor(d/60), ' hours ago') )
-      }
-
-    }else if ( d < 60*24*30 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/(24*60)), ' day ago') )
-      } else{
-        return(paste0( floor(d/(24*60)), ' days ago') )
-      }
-
-    } else if ( d < 60*24*30*12 ) {
-      return(paste0( floor(d/(24*60*30)), ' months ago') )
-    } else {
-      return( 'more than a year ago')
-    }
-  }
-  sapply( timeDiffs, getDiff)
-}
-timeStampToIntervalStringFuture = function(times){
-  timeDiffs = (difftime( times, lubridate::now(), units = 'mins'))
-
-  getDiff = function( d ){
-    if ( d < 1 ){
-      return ('less than a minute from now')
-    } else if ( d < 60 ){
-      return(paste0( floor(d), ' minutes from now') )
-    } else if ( d < 60*24 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/60), ' hour from now') )
-      } else{
-        return(paste0( floor(d/60), ' hours from now') )
-      }
-
-    }else if ( d < 60*24*30 ){
-      if ( floor( d/60) == 1){
-        return(paste0( floor(d/(24*60)), ' day from now') )
-      } else{
-        return(paste0( floor(d/(24*60)), ' days from now') )
-      }
-
-    } else if ( d < 60*24*30*12 ) {
-      return(paste0( floor(d/(24*60*30)), ' months from now') )
-    } else {
-      return( 'more than a year from now')
-    }
-  }
-  sapply( timeDiffs, getDiff)
-}
-
-
-#' @export
-remindPackage = function( packageName ){
-  df = convertCallCountsToHashTable(call_counts_hash_table ) %>%
-    filter( package == !!(packageName )) %>%
-    arrange( ( review_timer ))
-
-  package_string = df %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) ,
-                          " used ", crayon::bgWhite(total_uses), " times.  ",
-                          "Last used ",
-                          timeStampToIntervalString( most_recent_use ),
-                          ".",
-                          ifelse( needs_review, " Needs review.",
-                                  paste0( "Needs review in ", timeStampToIntervalStringFuture( review_timer)) )
-                          ) ) %>%
-    select( str )
-
-  cat(paste0( "\nHere is everything to review from the ",crayon::bgWhite(packageName) , " package\n"))
-  cat(paste(package_string$str, collapse = "\n"))
-
-  invisible(df )
-}
-
-#' @export
-upcomingReminders = function(){
-  df = convertCallCountsToHashTable(call_counts_hash_table ) %>%
-    arrange( ( review_timer )) %>%
-    filter( row_number() < 10 )
-
-  package_string = df %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) ,
-                          " used ", crayon::bgWhite(total_uses), " times.  ",
-                          "Last used ",
-                          timeStampToIntervalString( most_recent_use ),
-                          ".",
-                          ifelse( needs_review, " Needs review. ",
-                                  paste0( " Needs review ", timeStampToIntervalStringFuture( review_timer)) )
-    ) ) %>%
-    select( str )
-
-  cat(paste0( "\nHere is everything to review\n"))
-  cat(paste(package_string$str, collapse = "\n"))
-
-  invisible(df )
-}
-
-#' @import crayon
-#' @export
-remindMe = function(){
-  df = convertCallCountsToHashTable(call_counts_hash_table )
-
-  package_reminders = df %>%
-    filter( package != "R_GlobalEnv") %>%
-    filter(needs_review) %>%
-    group_by( package) %>%
-    arrange( ( review_timer)) %>%
-    filter( row_number() == 1) %>%
-    select( package, function_name, review_timer)%>%
-    ungroup() %>%
-    top_n( 3, desc(review_timer ))
-
-  top_5 = reminder( 5 )
-
-  if ( nrow( top_5) == 0 ){
-    cat("You have no methods to review at this time.  You can use remindPackage( packageName ) to see upcoming review items for a specific package.")
-    return( invisible( df ))
-  }
-
-  result =top_5 %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package") ) %>%
-    select( str )
-
-  package_string =package_reminders %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bgWhite(package)) ) %>%
-    select( str )
-
-  cat("Based on your previous R usage, we recommend that you review the following methods\n")
-  cat(paste(result$str, collapse = "\n"))
-
-#  cat("\n\nYou will have upcoming review in the following packages\n")
-#  cat(paste(package_string$str, collapse = "\n"))
-
-
-  cat(paste0( "\n To review a method, just call it in the console or call ", crayon::bgWhite( 'flashCards()' ) ,"."))
-
-
-  invisible(result)
-}
-
-#' @export
-flashCards = function(num_flashcards = 5){
-
-  df = convertCallCountsToHashTable(call_counts_hash_table )
-
-  stack = df %>%
-  #  filter(needs_review) %>%
-    filter( package != "R_GlobalEnv") %>%
-    top_n( num_flashcards, desc(review_timer ))
-
-  if ( nrow( stack )== 0){
-    cat("You have nothing to review")
-    return(invisible(NULL))
-  }
-
-
-  cat("Get ready to start your flashcards.\n")
-  cat("Look for help in the browser window.\n")
-  readline( "Press any key to start\n")
-  for ( i in 1:nrow(stack)){
-    row = stack[i,]
-    with(data = row, expr = {
-      str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
-      prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n) " )
-
-      if (is.na( package  )){
-        package = 'base'
-      }
-      h = help( name, package = (package), help_type = "html")
-
-        print(h)
-      cat(prompt)
-      cat("\n")
-      yesNo = readline()
-
-      keyname = paste0( package, "::", name )
-      prev_record = call_counts_hash_table[[keyname]]
-
-      if( is.null(prev_record)){
-        error("record not found")
-      }
-
-
-      if( yesNo == 'y'| yesNo == 'Yes' | yesNo == 'YES'){
-        prev_record$bucket_id = nextBucket( prev_record$bucket_id )
-      } else if ( yesNo == 'n'| yesNo == 'No' | yesNo == 'NO') {
-
-      } else if ( yesNo == 'q' | yesNo == 'Q' | yesNo == 'QUIT'| yesNo == 'quit' ){
-        break
-      }
-
-      call_counts_hash_table[[keyname]] = prev_record
-      #utils::askYesNo( prompt = "" )
-    })
-
-
-
-
-  }
-}
-
-#'
-#'
-#' Adds a line to your .Rprofile so that remembr runs by default.
-#' Can be uninstalled at any time with uninstall_remembr
-#' @export
-install_remembr = function(){
-  remembr::initRemembr()
-  remembrinstall::install()
-}
-
-#'
-#' Removes remembr from your rprofile
-#'
-#' @export
-uninstall_remembr = function(){
-  remembrinstall::uninstall()
-}
-
-
-extract_help <- function(pkg, fn = NULL, to = c("txt", "html", "latex", "ex")){
-  to <- match.arg(to)
-  rdbfile <- file.path(find.package(pkg), "help", pkg)
-  rdb <- tools:::fetchRdDB(rdbfile, key = fn)
-  convertor <- switch(to,
-                      txt   = tools::Rd2txt,
-                      html  = tools::Rd2HTML,
-                      latex = tools::Rd2latex,
-                      ex    = tools::Rd2ex
-  )
-  f <- function(x) capture.output(convertor(x))
-  if(is.null(fn)) lapply(rdb, f) else f(rdb)
-}
