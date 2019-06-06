@@ -222,6 +222,8 @@ flashCards = function(num_flashcards = 5){
       tryCatch({
         h = help( name, package = (package), help_type = "html")
         print(h)
+      }, error = function(e){
+        print("could not find help")
       })
 
 
