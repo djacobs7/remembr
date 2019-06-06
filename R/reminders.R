@@ -8,6 +8,7 @@ convertCallCountsToHashTable = function( call_counts_hash_table ){
   convertEnvToDataFrame  = function( call_counts_hash_table ){
     result = eapply(call_counts_hash_table, function(a){
       a$bucket_id = if(  'bucket_id' %in%  names(a) ) { a$bucket_id } else { nextBucket(c()); }
+      a$most_recent_review = if(  'most_recent_review' %in%  names(a) ) { a$most_recent_review } else { NA }
       a
     })
 
@@ -33,12 +34,14 @@ convertCallCountsToHashTable = function( call_counts_hash_table ){
            name = ifelse( function_name =="::", '::', name)
     ) %>%
     mutate(
-      review_timer = most_recent_use + bucket_timer,
-      needs_review = ifelse(
-        difftime(review_timer, lubridate::now(tzone = 'UTC') ) > 0 ,
-        FALSE,
-        TRUE
-      ) )
+      review_timer = most_recent_use + bucket_timer , #TODO: change to most_recent_review
+      review_timer = ifelse( is.na( most_recent_review), review_timer, most_recent_review + bucket_timer )   %>% lubridate::as_datetime())   %>%
+   mutate(
+     needs_review = ifelse(
+       difftime(review_timer, lubridate::now(tzone = 'UTC') ) > 0 ,
+       FALSE,
+       TRUE
+     ))
 
   df
 }
@@ -146,7 +149,10 @@ remindMe = function( num_rows = 5) {
     ungroup() %>%
     top_n( 3, desc(review_timer ))
 
-  top_5 = reminder( num_rows )
+
+  top_5 = df %>%
+    arrange( ( review_timer )) %>%
+    filter( row_number() < num_rows )
 
   if ( nrow( top_5) == 0 ){
     cat(paste0( "You have no methods to review at this time.  Your next review is ",  timeStampToIntervalStringFuture( min( df$review_timer) ) , ". You can use remindPackage( packageName ) to see upcoming review items for a specific package.") )
@@ -184,11 +190,10 @@ remindMe = function( num_rows = 5) {
 #' @export
 flashCards = function(num_flashcards = 5){
 
-  df = convertCallCountsToHashTable(getCallCountsHashTable() )
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
+    filter( package != "R_GlobalEnv")
 
   stack = df %>%
-    #  filter(needs_review) %>%
-    filter( package != "R_GlobalEnv") %>%
     top_n( num_flashcards, desc(review_timer ))
 
   if ( nrow( stack )== 0){
@@ -196,32 +201,46 @@ flashCards = function(num_flashcards = 5){
     return(invisible(NULL))
   }
 
+  num_needs_review = sum( df$needs_review )
 
   cat("Get ready to start your flashcards.\n")
   cat("Look for help in the browser window.\n")
+  cat(paste0( "You currently have ", num_needs_review, " functions that need review.\n"))
+  cat(paste0( "Don't worry, we will do them in chunks of ", num_flashcards, " at a time"))
   readline( "Press any key to start\n")
   for ( i in 1:nrow(stack)){
     row = stack[i,]
     with(data = row, expr = {
+      print(row)
       str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
       prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n) " )
 
       if (is.na( package  )){
         package = 'base'
       }
-      h = help( name, package = (package), help_type = "html")
 
-      print(h)
+      tryCatch({
+        h = help( name, package = (package), help_type = "html")
+        print(h)
+      })
+
+
+
       cat(prompt)
       cat("\n")
       yesNo = readline()
 
-      keyname = paste0( package, "::", name )
+      if ( name == '::' | name == ':::'){
+        keyname = name
+      } else{
+        keyname = paste0( package, "::", name )
+      }
+
       call_counts_hash_table = getCallCountsHashTable()
       prev_record = call_counts_hash_table[[keyname]]
 
       if( is.null(prev_record)){
-        error("record not found")
+        stop("record not found")
       }
 
 
@@ -233,6 +252,8 @@ flashCards = function(num_flashcards = 5){
         break
       }
 
+      #TODO: implement
+      prev_record$most_recent_review = lubridate::now(tzone = 'UTC')
       call_counts_hash_table[[keyname]] = prev_record
       #utils::askYesNo( prompt = "" )
     })
@@ -241,4 +262,15 @@ flashCards = function(num_flashcards = 5){
 
 
   }
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
+    filter( package != "R_GlobalEnv")
+  num_needs_review = sum( df$needs_review )
+  cat(paste0( "You currently have ", num_needs_review, " functions that need review.\n"))
+
+  if( num_needs_review > 0 ){
+    cat("You can run flashcards(num_flashcards) to study more.\n")
+  }
+  invisible(NULL)
+
+
 }

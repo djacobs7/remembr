@@ -47,7 +47,7 @@ addCallCountsCallback = function(expr, value, status, visible, data){
   get_functions( expr, getCallCountsHashTable(), needs_substitute = FALSE )
 
 
-  if ( opts$should_persist ){
+  if ( getOption("remembr.should_persist") ){
     saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
 
   }
@@ -56,13 +56,14 @@ addCallCountsCallback = function(expr, value, status, visible, data){
 
 
 clearCallCounts = function(){
-  rm( list= ls( call_counts_hash_table ), envir = call_counts_hash_table)
+  env = getCallCountsHashTable()
+  rm( list= ls( env ), envir = env)
 }
 
 
 
 showCallCounts = function(){
-  ls( call_counts_hash_table )
+  ls( getCallCountsHashTable() )
 }
 
 
@@ -88,13 +89,13 @@ loadOrCreateEnv = function(path = NULL){
 
 #https://github.com/HenrikBengtsson/startup/blob/master/R/install.R
 
-opts = new.env( hash = TRUE, parent = emptyenv())
-opts[["should_persist"]] = TRUE
+#opts = new.env( hash = TRUE, parent = emptyenv())
+#opts[["should_persist"]] = TRUE
 storage_file_directory = "~/.rRemembr/"
 
-if ( opts[["should_persist"]]){
-  dir.create(storage_file_directory,showWarnings = FALSE)
-}
+#if ( opts[["should_persist"]]){
+#  dir.create(storage_file_directory,showWarnings = FALSE)
+#}
 
 call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
 call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path ) #new.env( hash = TRUE, parent = emptyenv())
@@ -102,9 +103,27 @@ call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path ) #new.env
 storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
 storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
+.onLoad  = function(libname, pkgname){
+  op = options()
+  op.remembr= list(
+    remembr.should_persist = TRUE,
+    remembr.call_counts_hash_table_path = call_counts_hash_table_path,
+    remembr.call_counts_hash_table = call_counts_hash_table
+  )
+  toset <- !(names(op.remembr) %in% names(op))
+  if(any(toset)) options(op.remembr[toset])
+
+}
+
+
+
+.onAttach <- function(libname, pkgname) {
+  #packageStartupMessage("Remembr is running. Don't forget your flashcas")
+}
 
 getCallCountsHashTable = function(){
-  call_counts_hash_table
+  #call_counts_hash_table
+  getOption("remembr.call_counts_hash_table")
 }
 
 #' @export
@@ -157,7 +176,18 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     #print( call )
 #    shouldStop = FALSE
 #  shouldStop =  tryCatch({
-    standardised_call = pryr::standardise_call( call )
+    result = tryCatch({
+      standardised_call = pryr::standardise_call( call )
+      FALSE
+      },
+      error = function(e) {
+        message(e)
+        cat("\n")
+        TRUE
+      })
+    if( result ){
+      return(call)
+    }
 #    return(FALSE)
 #  },
 #  finally = function(e){
@@ -192,6 +222,9 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     #  keyname = paste0( standardised_call$pkg, "::", standardised_call$name)
     #}
 
+    ##TODO:
+    # IF IT IS 'library' THEN PRINT IT OUT!
+
     if(contains_nekudotayim){
       #print("has doube colon")
       #we already got it, so do nothing
@@ -214,16 +247,21 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
 
       expression_string = deparse( rlang::quo_get_expr(qq) )
       #print(paste0("expression_string", expression_string))
-      tryCatch({
+      result  =tryCatch({
         environment = pryr::where( expression_string, env = calling_enviroment )
 
-
+        FALSE
       },
 
       error = function(e){
-
-        stop(e)
+        print(expression_string)
+        message(e)
+        TRUE
       })
+
+        if( result ){
+          return(call)
+        }
 
       #print(qq)
       #environment = environment( rlang::eval_tidy( qq ))
@@ -259,12 +297,10 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
         next_bucket = prev_record$bucket_id
       }
 
-      prev_record  = list(
-        first_use= prev_record$first_use,
-        most_recent_use = lubridate::now(tzone= "UTC"),
-        total_uses = prev_record$total_uses + 1,
-        bucket_id = next_bucket
-        )
+      prev_record$most_recent_use = lubridate::now(tzone= "UTC")
+      prev_record$total_uses = prev_record$total_uses + 1
+      prev_record$bucket_id = next_bucket
+
     }
     #names( prev_record ) = c( 'first_use', 'most_recent_use', 'total_uses')
 
@@ -322,6 +358,36 @@ getDurationFromBucketId = function(bucket_id){
           )})
 }
 
+#' @examples
+#' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
+#
+#' @importFrom rlang parse_exprs
+getFunctionsFromFile = function(paths){
+  env= loadOrCreateEnv()
+
+  .getFromFile = function(path){
+    tryCatch({
+
+
+      exprs = rlang::parse_exprs( file( path ))
+      sapply( exprs, get_functions, call_counts_hash_table = env, needs_substitute = FALSE  )
+    }, error = function(e){
+        message(e)
+        print(path )
+    })
+    env
+
+  }
+
+  if( dir.exists( paths )){
+    paths = dir(paths, "\\.R$",recursive=T, full.names = TRUE)
+  } else {
+    paths = paths
+  }
+  sapply( paths, .getFromFile)
+  env
+
+}
 
 
 
