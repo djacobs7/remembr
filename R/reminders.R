@@ -110,6 +110,9 @@ remindPackage = function( packageNames = 'base', all = FALSE ){
 }
 
 
+#'
+#' Upcomping reminders
+#'
 #' Prints out the methods that will need to be reviewed next time you do a review
 #' @export
 upcomingReminders = function(num_methods = 10 ){
@@ -182,19 +185,25 @@ remindMe = function( num_rows = 5) {
 
 
 #'
+#' Flashcards for Code
+#'
+#' @description
 #' Shows flashcards for the methods that will help you become more fluent at R.
 #' You will gave a short practice session to review each method.
 #' If you say you are comfortable with the method, you will not see it for a while.
 #' If you are not comfortable, it will return to your flashcards so you have another chance to review.
 #'
+#' @param how many flashcards to do at once.
+#'
 #' @export
-flashCards = function(num_flashcards = 5){
+flashCards = function(num_flashcards = 10){
 
   df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
     filter( package != "R_GlobalEnv")
 
   stack = df %>%
-    top_n( num_flashcards, desc(review_timer ))
+    top_n( num_flashcards, desc(review_timer )) %>%
+    arrange( ( review_timer ))
 
   if ( nrow( stack )== 0){
     cat("You have nothing to review")
@@ -211,11 +220,12 @@ flashCards = function(num_flashcards = 5){
   for ( i in 1:nrow(stack)){
     row = stack[i,]
     with(data = row, expr = {
-      print(row)
-      str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
-      prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n) " )
 
-      if (is.na( package  )){
+      #print(paste0("needs review in ", timeStampToIntervalStringFuture( row $review_timer )))
+      str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
+      prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n/q) " )
+
+      if (is.na( package  ) | package == ""){
         package = 'base'
       }
 
@@ -230,8 +240,10 @@ flashCards = function(num_flashcards = 5){
       cat("\n")
       yesNo = readline()
 
-      if ( name == '::' | name == ':::'){
+      if ( name == '::' ){
         keyname = name
+      }else if ( name == ':'){
+        keyname =":::"
       } else{
         keyname = paste0( package, "::", name )
       }
@@ -265,8 +277,12 @@ flashCards = function(num_flashcards = 5){
   df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
     filter( package != "R_GlobalEnv")
   num_needs_review = sum( df$needs_review )
-  cat(paste0( "You currently have ", num_needs_review, " functions that need review.\n"))
 
+  if( num_needs_review == 0 ){
+    cat(paste0( "You currently are currently up to date with your review.\n"))
+  } else {
+    cat(paste0( "You currently have ", num_needs_review, " functions that need review.\n"))
+  }
   if( num_needs_review > 0 ){
     cat("You can run flashcards(num_flashcards) to study more.\n")
   }

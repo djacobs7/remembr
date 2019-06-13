@@ -9,6 +9,8 @@ install_remembr = function(){
   remembrinstall::install()
 }
 
+
+
 #'
 #' Removes remembr from your rprofile
 #'

@@ -2,12 +2,12 @@
 % Please edit documentation in R/reminders.R
 \name{flashCards}
 \alias{flashCards}
-\title{Shows flashcards for the methods that will help you become more fluent at R.
-You will gave a short practice session to review each method.
-If you say you are comfortable with the method, you will not see it for a while.
-If you are not comfortable, it will return to your flashcards so you have another chance to review.}
+\title{Flashcards for Code}
 \usage{
-flashCards(num_flashcards = 5)
+flashCards(num_flashcards = 10)
+}
+\arguments{
+\item{how}{many flashcards to do at once.}
 }
 \description{
 Shows flashcards for the methods that will help you become more fluent at R.

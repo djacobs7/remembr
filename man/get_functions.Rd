@@ -2,8 +2,7 @@
 % Please edit documentation in R/get_functions.R
 \name{get_functions}
 \alias{get_functions}
-\title{If call_counts_hash_table is NULL, then it will use a default value.
-Otherwise it needs an environment which is created like this new.env( hash = TRUE, parent = emptyenv())}
+\title{get_functions}
 \usage{
 get_functions(expression, call_counts_hash_table = NULL,
   needs_substitute = TRUE)

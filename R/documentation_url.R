@@ -46,6 +46,13 @@ getFunctionPropertiesFromQuosure = function(qq ){
   result
 }
 
+#'
+#'
+#' Add documentation for a function
+#'
+#' Enter a link that you think documents this function well. IT will show up when you do flashcards
+#' ( not supported yet! )
+#'
 #' @export
 addDocumentationURL = function( targetFunction, urls ){
   #addTargetFunction( targetFunction )  #not sure how to do this part!
@@ -63,6 +70,12 @@ addDocumentationURL = function( targetFunction, urls ){
   #but the plan here is you can type in a url and this will persist it along with your function name.  easy breezy.
 }
 
+
+#'
+#'
+#' Get documentation for a url
+#'
+#' Pass in a function and get any urls associated with it
 #' @export
 getDocumentationURL = function( targetFunction ){
   qq = rlang::enquo( targetFunction )

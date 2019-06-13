@@ -2,7 +2,7 @@
 % Please edit documentation in R/reminders.R
 \name{upcomingReminders}
 \alias{upcomingReminders}
-\title{Prints out the methods that will need to be reviewed next time you do a review}
+\title{Upcomping reminders}
 \usage{
 upcomingReminders(num_methods = 10)
 }

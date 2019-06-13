@@ -35,9 +35,14 @@ test_that("upcoming reminders works", {
   expect_output( upcomingReminders(10), regexp = "Here is everything to review" )
 })
 
+test_that("default reminders work",{
+  options("remembr.call_counts_hash_table" = readRDS("data/default_call_counts_hash_table.Rds"))
+  expect_output( upcomingReminders(10), regexp = "Here is everything to review" )
+})
+
 teardown({
   options("remembr.call_counts_hash_table" = remembr:::loadOrCreateEnv(
-                                                  remembr::getOptions("remembr.call_counts_hash_table_path")
+                                                  getOption("remembr.call_counts_hash_table_path")
                                               ))
 })
 

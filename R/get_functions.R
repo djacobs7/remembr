@@ -67,18 +67,24 @@ showCallCounts = function(){
 }
 
 
-loadOrCreateEnv = function(path = NULL){
+loadOrCreateEnv = function(path = NULL, default_env_path = NULL ){
   if ( is.null(path)){
-    return( new.env( hash = TRUE, parent = emptyenv()))
+      return( new.env( hash = TRUE, parent = emptyenv()))
   }
 
   if (file.exists(path)){
     readRDS( path )
   } else {
-    #http://adv-r.had.co.nz/Environments.html
-    #this is a trick for creating private variables.. otherwise packages are not allowed to modify state.
-    #also this is what we wanted to do anyway, a new.env is the same as a hash table in R
-    new.env( hash = TRUE, parent = emptyenv())
+    if (!is.null( default_env_path)){
+      readRDS(default_env_path)
+    } else {
+      #http://adv-r.had.co.nz/Environments.html
+      #this is a trick for creating private variables.. otherwise packages are not allowed to modify state.
+      #also this is what we wanted to do anyway, a new.env is the same as a hash table in R
+      new.env( hash = TRUE, parent = emptyenv())
+    }
+
+
   }
 }
 
@@ -97,28 +103,45 @@ storage_file_directory = "~/.rRemembr/"
 #  dir.create(storage_file_directory,showWarnings = FALSE)
 #}
 
+
+
 call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
-call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path ) #new.env( hash = TRUE, parent = emptyenv())
+call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
 
 storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
 storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
-.onLoad  = function(libname, pkgname){
+reloadCallCountsHashTable = function(){
+  options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
+}
+
+#'
+#'
+#' Initializes the options
+#'
+#' This is private method and is called either in onLoad or in initRemembr
+#'
+initOptions = function(){
   op = options()
   op.remembr= list(
     remembr.should_persist = TRUE,
     remembr.call_counts_hash_table_path = call_counts_hash_table_path,
     remembr.call_counts_hash_table = call_counts_hash_table
   )
+  options( op.remembr )
   toset <- !(names(op.remembr) %in% names(op))
   if(any(toset)) options(op.remembr[toset])
 
 }
 
+.onLoad  = function(libname, pkgname){
+  initOptions()
+}
+
 
 
 .onAttach <- function(libname, pkgname) {
-  #packageStartupMessage("Remembr is running. Don't forget your flashcas")
+  #packageStartupMessage("Remembr is running. Don't forget your flashcards")
 }
 
 getCallCountsHashTable = function(){
@@ -128,6 +151,7 @@ getCallCountsHashTable = function(){
 
 #' @export
 initRemembr = function(){
+  initOptions()
   removeTaskCallback("addCallCounts")
   addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = getCallCountsHashTable())
   invisible(TRUE)
@@ -136,7 +160,9 @@ initRemembr = function(){
 initRemembr()
 
 #'
+#' get_functions
 #'
+#' @description
 #' If call_counts_hash_table is NULL, then it will use a default value.
 #' Otherwise it needs an environment which is created like this new.env( hash = TRUE, parent = emptyenv())
 #'
@@ -360,16 +386,21 @@ getDurationFromBucketId = function(bucket_id){
 
 #' @examples
 #' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
-#
+#'
+#' @importFrom tools file_ext
 #' @importFrom rlang parse_exprs
 getFunctionsFromFile = function(paths){
   env= loadOrCreateEnv()
 
   .getFromFile = function(path){
     tryCatch({
+      if ( tools::file_ext(path) == 'Rmd'){
+        parseable = knitr::purl(text = readr::read_file(sample_rmd))
+      } else {
+        parseable = file(path)
+      }
 
-
-      exprs = rlang::parse_exprs( file( path ))
+      exprs = rlang::parse_exprs( parseable )
       sapply( exprs, get_functions, call_counts_hash_table = env, needs_substitute = FALSE  )
     }, error = function(e){
         message(e)
@@ -389,5 +420,12 @@ getFunctionsFromFile = function(paths){
 
 }
 
+#
+#sample_rmd ='repos/tidytext/vignettes/tidytext.Rmd'
+#
+#path_name = sample_rmd
+#if ( tools::file_ext(path_name) == 'Rmd'){
+#  r_code = knitr::purl(path_name)
+#}
 
 
