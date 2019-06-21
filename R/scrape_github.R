@@ -51,17 +51,42 @@ getReposSummary = function(){
   summary_df
 }
 
+getFeatureVectors = function(summary_df){
+  rrepos = summary_df %>% select( source, function_name, total_uses) %>% group_by( source ) %>% tidyr::spread( function_name, total_uses, fill =0 )
+}
+
+
+plotDendros = function(){
+  mtx = as.matrix( rrepos %>% ungroup() %>% select(-source) )
+  rownames(mtx) = rrepos$source
+  plot(hclust(dist(mtx)))
+
+
+
+  tfidfmat = tfidf %>% ungroup() %>% select(function_name, tfidf, source) %>%
+    tidyr::spread( function_name, tfidf, fill =0 ) %>%
+    mutate( source = gsub( "~/git/leitnr/repos/", "", source  ) )
+  mtx = as.matrix( tfidfmat %>% select(-source) )
+  rownames(mtx) = tfidfmat$source
+
+  hca = hclust(dist(mtx))
+  plot(hca)
+  rect.hclust(hca, k = 12, border = "red")
+
+
+}
+
+
+
 compileResults = function(summary_df){
 
+  summary_df %>% count(package) %>% arrange(desc(n)) %>% View()
+
+summary_df = summary
+#package ='dplyr'
 
 
-
-  uses =   summary_df  %>%
-    filter(package == package) %>%
-    group_by(name, source) %>%
-    select( total_uses ) %>% tidyr::spread( source, total_uses,fill = 0) %>% ungroup()
-
-  package_key = 'dplyr'
+  package_key = 'base'
   idf = summary_df  %>%
     mutate(num_sources = n_distinct( source )) %>%
     filter(package == !!(package_key)) %>%

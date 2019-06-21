@@ -177,7 +177,7 @@ initRemembr()
 #' @importFrom globals walkAST
 #' @importFrom lubridate now
 #' @importFrom lubridate days
-get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE ){
+get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE ){
   #print("analyzing functions")
 
   #TODO: not sure if this is necessary or helpful or doing the right hting
@@ -295,6 +295,12 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
       environmentName = gsub( pattern = "package:", replacement =  "", x =  environmentName)
       keyname = paste0( environmentName , "::", function_name)
 
+      if( evaluate_library ){
+        if( function_name == 'library' | function_name == 'require'){
+          rlang::eval_tidy(standardised_call)
+        }
+      }
+
     }
 
     #print( keyname )
@@ -401,7 +407,7 @@ getFunctionsFromFile = function(paths){
       }
 
       exprs = rlang::parse_exprs( parseable )
-      sapply( exprs, get_functions, call_counts_hash_table = env, needs_substitute = FALSE  )
+      sapply( exprs, get_functions, call_counts_hash_table = env, needs_substitute = FALSE, evaluate_library = TRUE  )
     }, error = function(e){
         message(e)
         print(path )

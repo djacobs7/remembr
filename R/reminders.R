@@ -221,7 +221,7 @@ flashCards = function(num_flashcards = 10){
     row = stack[i,]
     with(data = row, expr = {
 
-      #print(paste0("needs review in ", timeStampToIntervalStringFuture( row $review_timer )))
+      #print(paste0("needs review in ", timeStampToIntervalStringFuture( row$review_timer )))
       str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
       prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n/q) " )
 
