@@ -137,6 +137,18 @@ upcomingReminders = function(num_methods = 10 ){
   invisible(df )
 }
 
+#' Simple plot of your flashCards
+#'
+#' @import ggplot2
+#' @export
+plotFlashCards = function(){
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )
+
+  ggplot(df %>% group_by(package) %>% summarize(n = n()), aes( x= package, y = n) ) +
+    geom_bar(stat='identity') +
+    ylab("Unique methods to study")
+}
+
 #' @import crayon
 #' @export
 remindMe = function( num_rows = 5) {
