@@ -5,7 +5,8 @@
 \title{get_functions}
 \usage{
 get_functions(expression, call_counts_hash_table = NULL,
-  needs_substitute = TRUE)
+  needs_substitute = TRUE, evaluate_library = FALSE,
+  calling_environment = NULL)
 }
 \description{
 If call_counts_hash_table is NULL, then it will use a default value.

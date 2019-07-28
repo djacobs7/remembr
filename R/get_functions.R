@@ -48,7 +48,8 @@ addCallCountsCallback = function(expr, value, status, visible, data){
 
 
   if ( getOption("remembr.should_persist") ){
-    saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
+    saveCallCountsHashTable()
+
 
   }
   TRUE
@@ -104,7 +105,6 @@ storage_file_directory = "~/.rRemembr/"
 #}
 
 
-
 call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
 call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
 
@@ -114,6 +114,14 @@ storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 reloadCallCountsHashTable = function(){
   options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
 }
+
+saveCallCountsHashTable = function(){
+  if( !file.exists(dirname(call_counts_hash_table_path))){
+    stop(paste0( "Could not save call counts hash table, because ", dirname(call_counts_hash_table_path), " does not exist.  Please run remembr::install_remembr() to clear this message.") )
+  }
+  saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
+}
+
 
 #'
 #'
@@ -157,7 +165,8 @@ initRemembr = function(){
   invisible(TRUE)
 }
 
-initRemembr()
+# No side effects from call to library!
+# initRemembr()
 
 #'
 #' get_functions
@@ -177,14 +186,16 @@ initRemembr()
 #' @importFrom globals walkAST
 #' @importFrom lubridate now
 #' @importFrom lubridate days
-get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE ){
+get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE , calling_environment = NULL){
   #print("analyzing functions")
 
   #TODO: not sure if this is necessary or helpful or doing the right hting
-  calling_enviroment = parent.frame()
+  if ( is.null( calling_environment )){
+    calling_environment = parent.frame()
+  }
 
   if ( needs_substitute ){
-    sub = substitute(expression )#, calling_enviroment )
+    sub = substitute(expression )#, calling_environment )
   } else {
     sub = expression
   }
@@ -198,8 +209,8 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
 
   ## internal handler for calls in get_functions
   handleCall = function( call ){
-    #print("HANDLING CALL")
-    #print( call )
+  #  print("HANDLING CALL")
+  #  print( call )
 #    shouldStop = FALSE
 #  shouldStop =  tryCatch({
     result = tryCatch({
@@ -269,12 +280,12 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
       # Presently this is written like a parser or a compile-time thing.
       # In order to properly evaluate the environments of things, we would actually need to do this at runtime; or somehow hook into every method that could potentially modify a calling environment.  Maybe these is a way?
       qq = rlang::quo_set_expr(qq, function_name)
-      qq = rlang::quo_set_env(qq, calling_enviroment) #TODO: verify this
+      qq = rlang::quo_set_env(qq, calling_environment) #TODO: verify this
 
       expression_string = deparse( rlang::quo_get_expr(qq) )
       #print(paste0("expression_string", expression_string))
       result  =tryCatch({
-        environment = pryr::where( expression_string, env = calling_enviroment )
+        environment = pryr::where( expression_string, env = calling_environment )
 
         FALSE
       },
@@ -390,6 +401,8 @@ getDurationFromBucketId = function(bucket_id){
           )})
 }
 
+#' Get functions from a file
+#'
 #' @examples
 #' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
 #'
@@ -398,17 +411,31 @@ getDurationFromBucketId = function(bucket_id){
 getFunctionsFromFile = function(paths){
   env= loadOrCreateEnv()
 
+  calling_environment = parent.frame()
+
+  get_functions_safely = purrr::safely(get_functions)
+  errors = c()
   .getFromFile = function(path){
     tryCatch({
+
+      print(path)
       if ( tools::file_ext(path) == 'Rmd'){
-        parseable = knitr::purl(text = readr::read_file(sample_rmd))
+        parseable = knitr::purl(text = readr::read_file(path))
       } else {
         parseable = file(path)
       }
 
       exprs = rlang::parse_exprs( parseable )
-      sapply( exprs, get_functions, call_counts_hash_table = env, needs_substitute = FALSE, evaluate_library = TRUE  )
+
+      purrr::walk( exprs,
+              get_functions_safely,
+              call_counts_hash_table = env,
+              calling_environment = calling_environment,
+              needs_substitute = FALSE,
+              evaluate_library = TRUE  )
     }, error = function(e){
+
+        errors <<- c(errors, e$message)
         message(e)
         print(path )
     })
@@ -417,12 +444,20 @@ getFunctionsFromFile = function(paths){
   }
 
   if( dir.exists( paths )){
-    paths = dir(paths, "\\.R$",recursive=T, full.names = TRUE)
+    pathst = dir(paths, "\\.R$",recursive=T, full.names = TRUE)
+    #TODO: fix the capitalization
+
+    paths = c(pathst, dir(paths, "\\.Rmd$",recursive=T, full.names = TRUE))
+
   } else {
     paths = paths
   }
   sapply( paths, .getFromFile)
-  env
+
+  list(
+    result = env,
+    errors = errors )
+  #env
 
 }
 

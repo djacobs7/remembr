@@ -7,7 +7,7 @@
 flashCards(num_flashcards = 10)
 }
 \arguments{
-\item{how}{many flashcards to do at once.}
+\item{num_flashcards}{how many flashcards to do at once.}
 }
 \description{
 Shows flashcards for the methods that will help you become more fluent at R.

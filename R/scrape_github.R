@@ -29,27 +29,56 @@ getReposSummary = function(){
   repo_path =  "~/git/leitnr/repos/"
   repos = dir(repo_path)
 
+ # repos = intersect( repos, c("adv-r"))
 
-  all_dfs = sapply( paste0(repo_path, repos, "/" ), function(a){
-    print(a)
-    tryCatch({
-      result = remembr:::getFunctionsFromFile(a)
-      df = remembr:::convertCallCountsToHashTable(result)
-      df$source = a
-      df})
-  })
+  errors = c()
 
-  summary_df = data_frame(
+  summary_df = purrr::map_df( paste0(repo_path, repos, "/" ),
+                           function(a){
+                             print(a)
+                             tryCatch({
+                               result = remembr:::getFunctionsFromFile(a)
 
-    function_name =   unlist(all_dfs['function_name',]),
-    package =   unlist(all_dfs['package',]),
-    name =   unlist(all_dfs['name',]),
-    total_uses =   unlist(all_dfs['total_uses',]),
-    source =   unlist(all_dfs['source',])
+                               df = remembr:::convertCallCountsToHashTable(result$result)
+                               df$source = a
+                               errors <<- c(errors, result$errors)
+                               df})
+                           }
   )
+#  all_dfs = sapply( paste0(repo_path, repos, "/" ), function(a){
+#    print(a)
+#    tryCatch({
+#      result = remembr:::getFunctionsFromFile(a)
+#      df = remembr:::convertCallCountsToHashTable(result)
+#      df$source = a
+#      df})
+#  })
+#
+#  summary_df = data_frame(
+#
+#    function_name =   unlist(all_dfs['function_name',]),
+#    package =   unlist(all_dfs['package',]),
+#    name =   unlist(all_dfs['name',]),
+#    total_uses =   unlist(all_dfs['total_uses',]),
+#    source =   unlist(all_dfs['source',])
+#  )
 
-  summary_df
+  list(
+    summary_df = summary_df,
+    errors = errors )
 }
+
+errorCounts = function(){
+  a = grep(  "there is no", (summary_obj$errors), value = TRUE )
+
+
+
+ missing_packages =  tibble(error = a) %>% dplyr::count(error) %>% arrange(desc(n)) %>%
+    mutate( error = gsub(pattern = "there is no package called", replacement = "", x = error)) %>%
+    mutate( error = gsub(pattern = "’|‘", replacement = "", x = error)) %>%
+    mutate( error = gsub(pattern = " ", replacement = "", x = error))
+}
+
 
 getFeatureVectors = function(summary_df){
   rrepos = summary_df %>% select( source, function_name, total_uses) %>% group_by( source ) %>% tidyr::spread( function_name, total_uses, fill =0 )
@@ -80,30 +109,30 @@ plotDendros = function(){
 
 compileResults = function(summary_df){
 
-  summary_df %>% count(package) %>% arrange(desc(n)) %>% View()
+  summary_df %>% dplyr::count(package) %>% arrange(desc(n)) %>% View()
 
-summary_df = summary
+#summary_df = summary
 #package ='dplyr'
 
 
   package_key = 'base'
   idf = summary_df  %>%
-    mutate(num_sources = n_distinct( source )) %>%
-    filter(package == !!(package_key)) %>%
-    group_by(name ) %>%
-    summarize(  idf =log( first(num_sources) / n_distinct(  source ) ))
+    dplyr::mutate(num_sources = dplyr::n_distinct( source )) %>%
+    dplyr::filter(package == !!(package_key)) %>%
+    dplyr::group_by(name ) %>%
+    dplyr::summarize(  idf =log( first(num_sources) / dplyr::n_distinct(  source ) ))
 
 
   idf_package = summary_df  %>%
-    mutate(num_sources = n_distinct( source )) %>%
-    group_by(package ) %>%
-    summarize(  idf =log( first(num_sources) / n_distinct(  source ) ))
+    dplyr::mutate(num_sources = n_distinct( source )) %>%
+    dplyr::group_by(package ) %>%
+    dplyr::summarize(  idf =log( first(num_sources) / n_distinct(  source ) ))
 
 
   tfidf = summary_df  %>%
-    filter(package == !!(package_key)) %>%
-    left_join( idf, by = 'name') %>%
-    mutate(tfidf = total_uses * idf )
+    dplyr::filter(package == !!(package_key)) %>%
+    dplyr::left_join( idf, by = 'name') %>%
+    dplyr::mutate(tfidf = total_uses * idf )
 
 
   #result = dist(t(as.matrix( uses %>% select(-name) )) )

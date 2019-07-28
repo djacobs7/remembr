@@ -5,8 +5,21 @@
 #' Can be uninstalled at any time with uninstall_remembr
 #' @export
 install_remembr = function(){
-  remembr::initRemembr()
+
+
+  #cat("Creating ~/.rRemember folder...")
+  #cat("Modifying ~/.Rprofile to ")
+
+  dir.create(storage_file_directory)
+
   remembrinstall::install()
+  remembr::initRemembr()
+
+  cat(paste0(
+    "\n",
+    "Installing remembr. This will automatically create flashcards for you as you code interactively.  You can uninstall at any time with ",
+    crayon::bgWhite("uninstall_remembr()"), "\n"
+  ))
 }
 
 
@@ -17,5 +30,7 @@ install_remembr = function(){
 #' @export
 uninstall_remembr = function(){
   remembrinstall::uninstall()
+
+  cat(paste0("remembr has been uninstalled from your .rProfile. You can manually delete ", storage_file_directory, " to permanently delete your flashcards."))
 }
 

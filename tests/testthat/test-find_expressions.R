@@ -49,12 +49,16 @@ test_that("can create a function within an expression", {
   get_functions({
     runLm = function(){ lm( iris$Sepal.Width ~ iris$Petal.Length ) }
     runLm()
+    ls()
   },
   call_counts_hash_table
   )
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
+  testthat::expect_equal(  call_counts_hash_table[['base::ls']]$total_uses, 1 )
 
 })
+
+
 
 
 testthat::test_that("we handle namespaces properly", {

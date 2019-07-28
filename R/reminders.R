@@ -193,7 +193,7 @@ remindMe = function( num_rows = 5) {
 #' If you say you are comfortable with the method, you will not see it for a while.
 #' If you are not comfortable, it will return to your flashcards so you have another chance to review.
 #'
-#' @param how many flashcards to do at once.
+#' @param num_flashcards how many flashcards to do at once.
 #'
 #' @export
 flashCards = function(num_flashcards = 10){
@@ -214,7 +214,7 @@ flashCards = function(num_flashcards = 10){
 
   cat("Get ready to start your flashcards.\n")
   cat("Look for help in the browser window.\n")
-  cat(paste0( "You currently have ", num_needs_review, " functions that need review.\n"))
+  cat(paste0( "You currently have at least ", num_needs_review, " functions that need review.\n"))
   cat(paste0( "Don't worry, we will do them in chunks of ", num_flashcards, " at a time"))
   readline( "Press any key to start\n")
   for ( i in 1:nrow(stack)){
