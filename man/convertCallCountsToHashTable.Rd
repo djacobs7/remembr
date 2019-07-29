@@ -2,7 +2,7 @@
 % Please edit documentation in R/reminders.R
 \name{convertCallCountsToHashTable}
 \alias{convertCallCountsToHashTable}
-\title{Helper method for parsing the call_counts_hash_table environment and presenting it as a data frame}
+\title{convert call counts to hash table}
 \usage{
 convertCallCountsToHashTable(call_counts_hash_table)
 }

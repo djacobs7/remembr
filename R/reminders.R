@@ -1,5 +1,5 @@
-
-
+#' convert call counts to hash table
+#'
 #' Helper method for parsing the call_counts_hash_table environment and presenting it as a data frame
 #'
 #' @importFrom  lubridate as_datetime
