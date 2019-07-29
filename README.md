@@ -5,7 +5,7 @@ Learn new r methods and remember them.  Uses spaced repetition to help you learn
 
 ### Installation
 
-`install.packages('devtools'); devtools::install_github( "djacobs7/remembr");`
+`install.packages('devtools'); devtools::install_github( "djacobs7/remembr"); library(remembr); install_remembr()`
 
 ### Usage
 
