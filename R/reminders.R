@@ -142,18 +142,27 @@ upcomingReminders = function(num_methods = 10 ){
 plotFlashCards = function(){
   df = convertCallCountsToHashTable(getCallCountsHashTable() )
 
-  ggplot::ggplot(df %>% group_by(package) %>% summarize(n = n()), aes( x= package, y = n) ) +
-    geom_bar(stat='identity') +
+  ggplot2::ggplot(df %>% group_by(package) %>% summarize(n = n()), ggplot2::aes( x= package, y = n) ) +
+    ggplot2::geom_bar(stat='identity') +
     ylab("Unique methods to study")
 
 
-  ggplot::ggplot(df %>% group_by(package ) %>%
+  ggplot2::ggplot(df %>% group_by(package ) %>%
           arrange(package, total_uses) %>%
           mutate( uses_rank = row_number()),
-        aes( x= package, y = uses_rank, label = name) ) +
-   geom_text() #+
+          ggplot2::aes( x= package, y = uses_rank, label = name) ) +
+    ggplot2::geom_text() #+
    #geom_bar(stat='identity')
 
+
+
+  ggplot2::ggplot(df %>%
+                    mutate(usage_bkt =round( log( total_uses/ 10 ))) %>%
+                    group_by(usage_bkt) %>%
+                    arrange(usage_bkt, most_recent_use) %>%
+                    mutate( use_rank = row_number()),
+                  ggplot2::aes( x= usage_bkt, y = use_rank, label = name) ) +
+    ggplot2::geom_label()
 
 
 }

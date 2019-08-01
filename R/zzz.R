@@ -11,3 +11,9 @@
 
   }
 }
+
+.onLoad  = function(libname, pkgname){
+
+  print("calling onload")
+  initOptions()
+}

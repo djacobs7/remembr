@@ -30,7 +30,7 @@ install_remembr = function(){
 #' @export
 uninstall_remembr = function(){
   remembrinstall::uninstall()
-
+  stopRemembr()
   cat(paste0("remembr has been uninstalled from your .rProfile. You can manually delete ", storage_file_directory, " to permanently delete your flashcards."))
 }
 

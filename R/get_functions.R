@@ -106,12 +106,19 @@ storage_file_directory = "~/.rRemembr/"
 
 
 call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
-call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
+
+# we want only one R process modifying the call_counts_hash_table at a time
+# here, if a second process launches, it will take control of the writes
+# previously, whichever process _wrote_ last got to save this state.
+# with this patch, it will be whoever launched last
+last_known_modified_time = Sys.time()
 
 storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
 storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
 reloadCallCountsHashTable = function(){
+
+
   options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
 }
 
@@ -119,7 +126,19 @@ saveCallCountsHashTable = function(){
   if( !file.exists(dirname(call_counts_hash_table_path))){
     stop(paste0( "Could not save call counts hash table, because ", dirname(call_counts_hash_table_path), " does not exist.  Please run remembr::install_remembr() to clear this message.") )
   }
-  saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
+
+  #if ( !file.exists(call_counts_hash_table_path)){
+  #  last_modified_time = as.POSIXct(0, origin ='1970-01-01')
+  #} else {
+  #  last_modified_time = file.mtime(call_counts_hash_table_path )
+  #}
+  #if ( last_modified_time > last_known_modified_time ){
+    #Then don't write anything!
+  #} else {
+    saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
+  #  last_known_modified_time = file.mtime( call_counts_hash_table_path )
+  #}
+
 }
 
 
@@ -130,6 +149,9 @@ saveCallCountsHashTable = function(){
 #' This is private method and is called either in onLoad or in initRemembr
 #'
 initOptions = function(){
+  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
+
+
   op = options()
   op.remembr= list(
     remembr.should_persist = TRUE,
@@ -142,15 +164,6 @@ initOptions = function(){
 
 }
 
-.onLoad  = function(libname, pkgname){
-  initOptions()
-}
-
-
-
-.onAttach <- function(libname, pkgname) {
-  #packageStartupMessage("Remembr is running. Don't forget your flashcards")
-}
 
 getCallCountsHashTable = function(){
   #call_counts_hash_table
@@ -163,6 +176,10 @@ initRemembr = function(){
   removeTaskCallback("addCallCounts")
   addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = getCallCountsHashTable())
   invisible(TRUE)
+}
+
+stopRemembr = function(){
+  removeTaskCallback("addCallCounts")
 }
 
 # No side effects from call to library!
