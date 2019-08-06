@@ -224,12 +224,19 @@ remindMe = function( num_rows = 5) {
 #' If you are not comfortable, it will return to your flashcards so you have another chance to review.
 #'
 #' @param num_flashcards how many flashcards to do at once.
+#' @param time_since_last_use time interval since the last time the function was used in console.  For example: lubridate::hours(1)
 #'
 #' @export
-flashCards = function(num_flashcards = 10){
+flashCards = function(num_flashcards = 10, time_since_last_use = NULL){
 
   df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
     filter( package != "R_GlobalEnv")
+
+  if(!is.null(time_since_last_use) ){
+    df = df %>% filter(
+      most_recent_use > lubridate::now() - time_since_last_use
+    )
+  }
 
   stack = df %>%
     top_n( num_flashcards, desc(review_timer )) %>%
@@ -244,7 +251,10 @@ flashCards = function(num_flashcards = 10){
 
   cat("Get ready to start your flashcards.\n")
   cat("Look for help in the browser window.\n")
-  cat(paste0( "You currently have at least ", num_needs_review, " functions that need review.\n"))
+  if( num_needs_review > num_flashcards ){
+    cat(paste0( "You currently have at least ", num_needs_review, " functions that need review.\n"))
+  }
+
   cat(paste0( "Don't worry, we will do them in chunks of ", num_flashcards, " at a time"))
   readline( "Press any key to start\n")
   for ( i in 1:nrow(stack)){
