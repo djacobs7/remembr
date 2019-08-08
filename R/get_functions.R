@@ -333,44 +333,8 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
 
     }
 
-    #print( keyname )
+    updateCard(keyname, call_counts_hash_table = call_counts_hash_table)
 
-    if (is.null(call_counts_hash_table)){
-      call_counts_hash_table = getCallCountsHashTable()
-    }
-    prev_record = call_counts_hash_table[[keyname]]
-
-    if ( is.null (prev_record )){
-      prev_record = list( first_use =   lubridate::now(tzone = 'UTC'),
-                          most_recent_use = lubridate::now(tzone = 'UTC'),
-                          total_uses = 1,
-                          bucket_id = nextBucket(NULL) )
-    } else {
-      if ( is.null( prev_record$bucket_id )){
-        prev_record$bucket_id = nextBucket(c())
-      }
-      bucket_timer = as.numeric( getDurationFromBucketId( prev_record$bucket_id ) )
-      now_t = lubridate::now(tzone = 'UTC')
-      dt = difftime(prev_record$most_recent_use + bucket_timer,now_t  )
-
-       if(  dt < 0 ){
-        next_bucket = nextBucket( prev_record$bucket_id )
-      } else {
-        next_bucket = prev_record$bucket_id
-      }
-
-      prev_record$most_recent_use = lubridate::now(tzone= "UTC")
-      prev_record$total_uses = prev_record$total_uses + 1
-      prev_record$bucket_id = next_bucket
-
-    }
-    #names( prev_record ) = c( 'first_use', 'most_recent_use', 'total_uses')
-
-    if (!is.null(getCurrentPackName())){
-      addKeynameToPack( keyname )
-    }
-
-    call_counts_hash_table[[keyname]] = prev_record
 
     #print( paste0( "call: ", paste0(call, collapse = " ::: ")) );
     call
@@ -388,41 +352,6 @@ getObjectFromName = function( name ){
   get( name )
 }
 
-
-#'
-#' Given an id, get the id for the next bucket
-#'
-#' If bucket_id is null, then start from 1
-#'
-#'
-nextBucket = function(bucket_id ){
-  if ( is.null(bucket_id) | length( bucket_id) == 0){
-    1
-  }else if ( bucket_id < 6 ){
-    bucket_id + 1
-  } else {
-    bucket_id
-  }
-}
-
-
-#' Given a bucket id, return a timer for that bucket
-#'
-#'
-#' @importFrom lubridate minutes
-#' @importFrom lubridate hours
-#' @importFrom lubridate days
-getDurationFromBucketId = function(bucket_id){
-  sapply( bucket_id, function(a){
-  switch( as.character(a) ,
-          '1' = as.numeric( lubridate::minutes(10 )),
-          '2' = as.numeric( lubridate::minutes(60 )),
-          '3' = as.numeric( lubridate::hours(6 )),
-          '4' = as.numeric( lubridate::hours(24 )),
-          '5' = as.numeric( lubridate::days(7 )),
-          '6' = as.numeric( lubridate::days(30 ))
-          )})
-}
 
 #' Get functions from a file
 #'

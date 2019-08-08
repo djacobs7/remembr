@@ -1,51 +1,3 @@
-#' convert call counts to hash table
-#'
-#' Helper method for parsing the call_counts_hash_table environment and presenting it as a data frame
-#'
-#' @importFrom  lubridate as_datetime
-#' @import dplyr
-convertCallCountsToHashTable = function( call_counts_hash_table ){
-  convertEnvToDataFrame  = function( call_counts_hash_table ){
-    result = eapply(call_counts_hash_table, function(a){
-      a$bucket_id = if(  'bucket_id' %in%  names(a) ) { a$bucket_id } else { nextBucket(c()); }
-      a$most_recent_review = if(  'most_recent_review' %in%  names(a) ) { a$most_recent_review } else { NA }
-      a
-    })
-
-    df =do.call( rbind, result) %>%
-      dplyr::as_tibble(rownames = 'function_name') %>%
-      dplyr::mutate_all(unlist) %>%
-      mutate( first_use = lubridate::as_datetime(first_use ),
-              most_recent_use = lubridate::as_datetime(most_recent_use )
-
-      )
-    df
-  }
-
-  df = convertEnvToDataFrame( call_counts_hash_table )
-
-  #this becomes a default actually!
-  df$bucket_timer = getDurationFromBucketId(df$bucket_id )
-
-
-  df = df %>%
-    tidyr::separate(function_name, c('package','name'), sep = '::', remove = FALSE) %>%
-    mutate(package = ifelse( function_name =="::", 'base', package),
-           name = ifelse( function_name =="::", '::', name)
-    ) %>%
-    mutate(
-      review_timer = most_recent_use + bucket_timer , #TODO: change to most_recent_review
-      review_timer = ifelse( is.na( most_recent_review), review_timer, most_recent_review + bucket_timer )   %>% lubridate::as_datetime())   %>%
-   mutate(
-     needs_review = ifelse(
-       difftime(review_timer, lubridate::now(tzone = 'UTC') ) > 0 ,
-       FALSE,
-       TRUE
-     ))
-
-  df
-}
-
 
 #'
 remindMeDataFrame = function( num_functions = 5 ){
@@ -247,6 +199,7 @@ getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name
 #' @export
 flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL){
 
+
   df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name )
 
 
@@ -302,26 +255,18 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name
         keyname = paste0( package, "::", name )
       }
 
-      call_counts_hash_table = getCallCountsHashTable()
-      prev_record = call_counts_hash_table[[keyname]]
-
-      if( is.null(prev_record)){
-        stop("record not found")
-      }
-
-
       if( yesNo == 'y'| yesNo == 'Yes' | yesNo == 'YES'){
         prev_record$bucket_id = nextBucket( prev_record$bucket_id )
+        should_update_bucket = TRUE
       } else if ( yesNo == 'n'| yesNo == 'No' | yesNo == 'NO') {
-
+        should_update_bucket = FALSE
       } else if ( yesNo == 'q' | yesNo == 'Q' | yesNo == 'QUIT'| yesNo == 'quit' ){
         break
       }
+      time = lubridate::now(tzone = 'UTC')
+      reviewCard( keyname, time, should_update_bucket, getCallCountsHashTable() )
 
-      #TODO: implement
-      prev_record$most_recent_review = lubridate::now(tzone = 'UTC')
-      call_counts_hash_table[[keyname]] = prev_record
-      #utils::askYesNo( prompt = "" )
+
     })
 
 
