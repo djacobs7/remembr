@@ -364,6 +364,10 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     }
     #names( prev_record ) = c( 'first_use', 'most_recent_use', 'total_uses')
 
+    if (!is.null(getCurrentPackName())){
+      addKeynameToPack( keyname )
+    }
+
     call_counts_hash_table[[keyname]] = prev_record
 
     #print( paste0( "call: ", paste0(call, collapse = " ::: ")) );

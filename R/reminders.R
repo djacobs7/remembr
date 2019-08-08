@@ -213,6 +213,24 @@ remindMe = function( num_rows = 5) {
   invisible(result)
 }
 
+getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name = NULL ){
+  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
+    filter( package != "R_GlobalEnv")
+
+  if ( !is.null(pack_name)){
+    pack_keys = listPackKeys(pack_name)
+    if ( length(pack_keys) ==0 ){
+      stop(paste0("Could not find anything to study for ", pack_name))
+    }
+
+    df = df %>% right_join( data_frame( function_name = pack_keys ), by = 'function_name')
+  }
+  if(!is.null(time_since_last_use) ){
+    df = df %>% filter(
+      most_recent_use > lubridate::now() - time_since_last_use
+    )
+  }
+}
 
 #'
 #' Flashcards for Code
@@ -227,16 +245,10 @@ remindMe = function( num_rows = 5) {
 #' @param time_since_last_use time interval since the last time the function was used in console.  For example: lubridate::hours(1)
 #'
 #' @export
-flashCards = function(num_flashcards = 10, time_since_last_use = NULL){
+flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL){
 
-  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
-    filter( package != "R_GlobalEnv")
+  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name )
 
-  if(!is.null(time_since_last_use) ){
-    df = df %>% filter(
-      most_recent_use > lubridate::now() - time_since_last_use
-    )
-  }
 
   stack = df %>%
     top_n( num_flashcards, desc(review_timer )) %>%
@@ -316,8 +328,11 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL){
 
 
   }
+
+  #TODO: reapply the filters
   df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
     filter( package != "R_GlobalEnv")
+
   num_needs_review = sum( df$needs_review )
 
   if( num_needs_review == 0 ){
