@@ -149,7 +149,9 @@ saveCallCountsHashTable = function(){
 #' This is private method and is called either in onLoad or in initRemembr
 #'
 initOptions = function(){
-  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
+  #call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
+
+  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, NULL )
 
 
   op = options()
