@@ -150,6 +150,9 @@ convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
            name = ifelse( function_name =="::", '::', name)
     ) %>%
     mutate(
+      # THE CORRECT ORDER IS:
+      # MOST RECENT ITEMS IN THE MOST RECENT BUCKET
+
       review_timer = most_recent_use + bucket_timer , #TODO: change to most_recent_review
       review_timer = if_else( is.na( most_recent_review), review_timer, most_recent_review + bucket_timer )   %>% lubridate::as_datetime())   %>%
     mutate(

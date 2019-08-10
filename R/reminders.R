@@ -165,8 +165,8 @@ remindMe = function( num_rows = 5) {
   invisible(result)
 }
 
-getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name = NULL ){
-  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
+getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name = NULL, call_counts_hash_table = NULL ){
+  df = convertCallCountsToHashTable( call_counts_hash_table )%>%
     filter( package != "R_GlobalEnv")
 
   if ( !is.null(pack_name)){
@@ -182,6 +182,9 @@ getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name
       most_recent_use > lubridate::now() - time_since_last_use
     )
   }
+
+  df = df %>% arrange( review_timer )
+  df
 }
 
 #'
@@ -200,14 +203,16 @@ getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name
 flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL){
 
 
-  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name )
+  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name, getCallCountsHashTable() )
 
 
   stack = df %>%
-    top_n( num_flashcards, desc(review_timer )) %>%
-    arrange( ( review_timer ))
+    #top_n( num_flashcards, desc(bucket, review_timer )) %>%
+    arrange( bucket,  review_timer )
 
-  if ( nrow( stack )== 0){
+  .num_flashcards = max( num_flashcards, nrow(df ))
+
+  if ( nrow( df )== 0){
     cat("You have nothing to review")
     return(invisible(NULL))
   }
@@ -222,7 +227,7 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name
 
   cat(paste0( "Don't worry, we will do them in chunks of ", num_flashcards, " at a time"))
   readline( "Press any key to start\n")
-  for ( i in 1:nrow(stack)){
+  for ( i in 1:.num_flashcards){
     row = stack[i,]
     with(data = row, expr = {
 

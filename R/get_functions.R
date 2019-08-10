@@ -1,15 +1,6 @@
 #https://www.ninds.nih.gov/News-Events/News-and-Press-Releases/Press-Releases/Want-learn-new-skill-Take-some-short-breaks
 
-print_ast= function( expression ){
 
-  sub = substitute(expression)
-  print( sub)
-
-  printName = function( name ) {print( paste0( "name: ", name) ); name}
-  printCall = function( call ) {print( paste0( "call: ", paste0(call, collapse = " ::: ")) ); call}
-  printAtomic = function( atomic ){ print( paste0( "atomic: ", atomic) ); atomic}
-  globals::walkAST( expr = sub, atomic = printAtomic, name =  printName, call =printCall)
-}
 
 
 #https://stat.ethz.ch/R-manual/R-devel/library/base/html/taskCallback.html
@@ -220,138 +211,123 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
   }
   #print( sub)
 
-  printName = function( name ) {
+
+
+  ## internal handler for calls in get_functions
+  .handleCall = function( call ){
+  #  print("HANDLING CALL")
+  #  print( call )
+    could_not_get_keyname = tryCatch({
+      keyname = .get_keyname_from_call( call, calling_environment )
+      FALSE
+    },
+    error = function(e) {
+      message(paste0("Message from remembr: ", e))
+      cat("\n")
+      TRUE
+    })
+
+    if( could_not_get_keyname ){
+      return(call)
+    }
+    #keyname = .get_keyname_from_call( call )
+
+    if( evaluate_library ){
+      if( function_name == 'library' | function_name == 'require'){
+        rlang::eval_tidy(standardised_call)
+      }
+    }
+
+    updateCard(keyname, call_counts_hash_table = call_counts_hash_table)
+    call
+  }
+
+  #printCall = function( call ) {}
+  .printAtomic = function( atomic ){
+    #print( paste0( "atomic: ", atomic) );
+    atomic
+  }
+  .printName = function( name ) {
     #print( paste0( "name: ", name) );
     #print(str(name))
     name
   }
 
-  ## internal handler for calls in get_functions
-  handleCall = function( call ){
-  #  print("HANDLING CALL")
-  #  print( call )
-#    shouldStop = FALSE
-#  shouldStop =  tryCatch({
-    result = tryCatch({
-      standardised_call = pryr::standardise_call( call )
-      FALSE
-      },
-      error = function(e) {
-        message(e)
-        cat("\n")
-        TRUE
-      })
-    if( result ){
-      return(call)
-    }
-#    return(FALSE)
-#  },
-#  finally = function(e){
-#    return(FALSE)
-#  }
-#  ), error =  function(e){
-#    print(e)
-#    print("BANANA")
-#    return( TRUE )
-
-#  })
-#  print("BANANA")
-#  print(shouldStop)
-#    shouldStop = FALSE
-#    if (shouldStop == TRUE){ print("APPLE"); return(call); }
+  globals::walkAST( expr = sub, atomic = .printAtomic, name =  .printName, call = .handleCall)
+}
 
 
-    #print( standardised_call )
-    #print(str(standardised_call))
+# make sure to pass in a standardized call from pryr::Standardize_call
+.get_keyname_from_call = function( call, calling_environment ){
 
-    function_name = standardised_call[[1]]
-    #print(str(function_name))
-    #print(paste0('function name: ', deparse(function_name)))
+  #could_not_standardise_call = tryCatch({
+  standardised_call = pryr::standardise_call( call )
+  #  FALSE
+  #},
+  #error = function(e) {
+  #  message(e)
+  #  cat("\n")
+  #  TRUE
+  #})
 
+  #if( could_not_standardise_call ){
+  #  return(call)
+  #}
 
-    #https://stackoverflow.com/questions/592322/php-expects-t-paamayim-nekudotayim/592326
-    contains_nekudotayim = grepl("::", deparse(function_name))
-    #print (paste0( "has double colon:  ", (contains_nekudotayim)))
-    #if (function_name == "::"){  #handle specific cases where the called function is `::`.  Like when we call  addTargetFunctions( dplyr::summarise )
-    # print( "WE ARE HERE")
+  function_name = standardised_call[[1]]
 
-    #  keyname = paste0( standardised_call$pkg, "::", standardised_call$name)
-    #}
+  #https://stackoverflow.com/questions/592322/php-expects-t-paamayim-nekudotayim/592326
+  contains_nekudotayim = grepl("::", deparse(function_name))
 
-    ##TODO:
-    # IF IT IS 'library' THEN PRINT IT OUT!
+  ##TODO:
+  # IF IT IS 'library' THEN PRINT IT OUT!
 
-    if(contains_nekudotayim){
-      #print("has doube colon")
-      #we already got it, so do nothing
-      keyname = deparse(function_name)
-      #make me wonder if we should handle all of this in the name checker instead
-    } else{
+  if(contains_nekudotayim){
+    keyname = deparse(function_name)
+    #make me wonder if we should handle all of this in the name checker instead
+  } else{
+    qq = rlang::quo(function_name)
 
-      #print( "NOW WE ARE HERE")
-      qq = rlang::quo(function_name)
+    #FIXME:
+    # so - we are basically assuming that if we are in a nested series of functions, that no function is ever redefined.
+    # this is not the safest of assumptions, and will often be incorrect
+    # however, the only way I can think to handle this is by actually executing the code.
+    # Presently this is written like a parser or a compile-time thing.
+    # In order to properly evaluate the environments of things, we would actually need to do this at runtime; or somehow hook into every method that could potentially modify a calling environment.  Maybe these is a way?
+    qq = rlang::quo_set_expr(qq, function_name)
+    qq = rlang::quo_set_env(qq, calling_environment) #TODO: verify this
 
-
-      #FIXME:
-      # so - we are basically assuming that if we are in a nested series of functions, that no function is ever redefined.
-      # this is not the safest of assumptions, and will often be incorrect
-      # however, the only way I can think to handle this is by actually executing the code.
-      # Presently this is written like a parser or a compile-time thing.
-      # In order to properly evaluate the environments of things, we would actually need to do this at runtime; or somehow hook into every method that could potentially modify a calling environment.  Maybe these is a way?
-      qq = rlang::quo_set_expr(qq, function_name)
-      qq = rlang::quo_set_env(qq, calling_environment) #TODO: verify this
-
-      expression_string = deparse( rlang::quo_get_expr(qq) )
-      #print(paste0("expression_string", expression_string))
-      result  =tryCatch({
+    expression_string = deparse( rlang::quo_get_expr(qq) )
+    tryCatch(
+      {
         environment = pryr::where( expression_string, env = calling_environment )
-
-        FALSE
       },
-
       error = function(e){
-        print(expression_string)
-        message(e)
-        TRUE
-      })
-
-        if( result ){
-          return(call)
-        }
-
-      #print(qq)
-      #environment = environment( rlang::eval_tidy( qq ))
-      environmentName = environmentName( environment )
-      environmentName = gsub( pattern = "package:", replacement =  "", x =  environmentName)
-      keyname = paste0( environmentName , "::", function_name)
-
-      if( evaluate_library ){
-        if( function_name == 'library' | function_name == 'require'){
-          rlang::eval_tidy(standardised_call)
-        }
+        cat(paste0("remembr:: failed on ", expression_string))
+        stop(e)
       }
+    )
 
-    }
+    environmentName = environmentName( environment )
+    environmentName = gsub( pattern = "package:", replacement =  "", x =  environmentName)
+    keyname = paste0( environmentName , "::", function_name)
 
-    updateCard(keyname, call_counts_hash_table = call_counts_hash_table)
 
-
-    #print( paste0( "call: ", paste0(call, collapse = " ::: ")) );
-    call
   }
-  #printCall = function( call ) {}
-  printAtomic = function( atomic ){
-    #print( paste0( "atomic: ", atomic) );
-    atomic
-  }
-  globals::walkAST( expr = sub, atomic = printAtomic, name =  printName, call =handleCall)
 }
 
 
-getObjectFromName = function( name ){
-  get( name )
-}
 
+.print_ast= function( expression ){
+
+  sub = substitute(expression)
+  print( sub)
+
+  printName = function( name ) {print( paste0( "name: ", name) ); name}
+  printCall = function( call ) {print( paste0( "call: ", paste0(call, collapse = " ::: ")) ); call}
+  printAtomic = function( atomic ){ print( paste0( "atomic: ", atomic) ); atomic}
+  globals::walkAST( expr = sub, atomic = printAtomic, name =  printName, call =printCall)
+}
 
 #' Get functions from a file
 #'

@@ -1,6 +1,6 @@
 context("test-find_expressions")
 
-test_that( "more use cases", {
+test_that( "Simple call to get_functions", {
 
 
 
@@ -9,7 +9,7 @@ test_that( "more use cases", {
   get_functions({ a = iris;
   model = lm( iris$Sepal.Length ~ iris$Petal.Length )
   model = stats::lm( iris$Sepal.Length ~ iris$Petal.Length )} ,
-  call_counts_hash_table
+    call_counts_hash_table
   )
 
 
@@ -17,7 +17,7 @@ test_that( "more use cases", {
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 2 )
 })
 
-test_that("multiplication works", {
+test_that("multiple calls to get_functions", {
   call_counts_hash_table = loadOrCreateEnv(NULL)
 #  expression  =
 

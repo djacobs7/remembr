@@ -63,3 +63,11 @@ listPackKeys = function(pack_name){
   }
 
 }
+
+
+createPack = function(){
+
+  startPack("advanced-r-functional-programming")
+
+  finishPack()
+}

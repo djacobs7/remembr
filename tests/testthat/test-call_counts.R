@@ -158,4 +158,23 @@ test_that("bucket review logic is not bonkers", {
 })
 
 
+test_that("flash cards order properly", {
+  cc = loadOrCreateEnv()
 
+  start_time = lubridate::ymd_hms("2019-01-24 19:39:07")
+
+  updateCard( "base::ls", time =start_time, call_counts_hash_table = cc)
+  updateCard( "stats::lm", time =start_time, call_counts_hash_table = cc)
+
+  review_time_1 =  start_time + lubridate::minutes(11)
+  cc_df = convertCallCountsToHashTable(cc, time = review_time_1)
+
+  updateCard( "stats::lm", time =review_time_1, call_counts_hash_table = cc)
+
+  #reviewCard( "base::ls", time = review_time_1, call_counts_hash_table = cc )
+
+
+  #FIXME: actually use the proper method here
+  #cc_df = convertCallCountsToHashTable(cc, time = review_time_2)
+  #TODO: this is not finished
+})
