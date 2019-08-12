@@ -23,7 +23,19 @@ generateCustomHelp = function(pkg, fn = NULL){
 
   help_str = paste0( help_str, collapse ='' )
   help_str = paste0( '<h2>help_str</h2>', help_str, collapse ='' )
+  help_str = paste0( '<li><a href="http://www.google.com">The Goog</a></li>', help_str, collapse ='' )
   writeLines(help_str, file.path(path, "customhelp.html"))
+
+
+  #grabbed from utils::help
+  port = tools::startDynamicHelp(NA)
+  if (port <= 0L){
+    stop("could not open help")
+    return(library(help = package, lib.loc = lib.loc,
+                   character.only = TRUE))
+  }
+
+
   browseURL(paste0("http://127.0.0.1:", port,
                    "/doc/html/customhelp.html"),
             getOption("browser"))

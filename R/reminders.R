@@ -200,17 +200,19 @@ getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name
 #' @param time_since_last_use time interval since the last time the function was used in console.  For example: lubridate::hours(1)
 #'
 #' @export
-flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL){
+flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL, pack = NULL){
+  start_time = lubridate::now(tzone = 'UTC')
+  result_counts = list( comfortable = 0, not_comfortable = 0 )
 
-
-  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name, getCallCountsHashTable() )
-
-
+  if ( is.null(pack)){
+    pack = getCallCountsHashTable()
+  }
+  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name, pack )
   stack = df %>%
     #top_n( num_flashcards, desc(bucket, review_timer )) %>%
-    arrange( bucket,  review_timer )
+    arrange(   review_timer )
 
-  .num_flashcards = max( num_flashcards, nrow(df ))
+  .num_flashcards = min( num_flashcards, nrow(df ))
 
   if ( nrow( df )== 0){
     cat("You have nothing to review")
@@ -255,32 +257,35 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name
       if ( name == '::' ){
         keyname = name
       }else if ( name == ':'){
-        keyname =":::"
+        keyname ="base:::"
       } else{
         keyname = paste0( package, "::", name )
       }
 
       if( yesNo == 'y'| yesNo == 'Yes' | yesNo == 'YES'){
-        prev_record$bucket_id = nextBucket( prev_record$bucket_id )
         should_update_bucket = TRUE
+
+        result_counts$comfortable = result_counts$comfortable + 1
       } else if ( yesNo == 'n'| yesNo == 'No' | yesNo == 'NO') {
+        result_counts$not_comfortable = result_counts$not_comfortable + 1
         should_update_bucket = FALSE
       } else if ( yesNo == 'q' | yesNo == 'Q' | yesNo == 'QUIT'| yesNo == 'quit' ){
         break
       }
       time = lubridate::now(tzone = 'UTC')
-      reviewCard( keyname, time, should_update_bucket, getCallCountsHashTable() )
-
-
+      reviewCard( keyname, time, should_update_bucket, pack )
     })
-
-
-
-
   }
 
-  #TODO: reapply the filters
-  df = convertCallCountsToHashTable(getCallCountsHashTable() )%>%
+
+  present_time = lubridate::now(tzone = 'UTC')
+
+  time_spent_in_review = difftime( present_time ,  start_time, units = 'secs' )
+
+  cat(paste0("You spent ", time_spent_in_review, " seconds in review. "))
+
+    #TODO: reapply the filters
+  df = convertCallCountsToHashTable( pack )%>%
     filter( package != "R_GlobalEnv")
 
   num_needs_review = sum( df$needs_review )

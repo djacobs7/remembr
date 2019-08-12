@@ -196,7 +196,7 @@ stopRemembr = function(){
 #' @importFrom globals walkAST
 #' @importFrom lubridate now
 #' @importFrom lubridate days
-get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE , calling_environment = NULL){
+get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE , calling_environment = NULL, throw_errors = FALSE){
   #print("analyzing functions")
 
   #TODO: not sure if this is necessary or helpful or doing the right hting
@@ -224,7 +224,12 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     error = function(e) {
       message(paste0("Message from remembr: ", e))
       cat("\n")
-      TRUE
+      if ( throw_errors){
+        stop(e)
+      } else {
+        TRUE
+      }
+
     })
 
     if( could_not_get_keyname ){
@@ -233,8 +238,8 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     #keyname = .get_keyname_from_call( call )
 
     if( evaluate_library ){
-      if( function_name == 'library' | function_name == 'require'){
-        rlang::eval_tidy(standardised_call)
+      if( keyname == 'base::library' | keyname == 'base::require'){
+        rlang::eval_tidy(call)
       }
     }
 
@@ -329,64 +334,86 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
   globals::walkAST( expr = sub, atomic = printAtomic, name =  printName, call =printCall)
 }
 
+#======  Get Functions From a File ( rmd or R)
+
 #' Get functions from a file
 #'
 #' @examples
 #' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
 #'
+#' TODO: should output a list of missing pacakges
+#'
 #' @importFrom tools file_ext
 #' @importFrom rlang parse_exprs
-getFunctionsFromFile = function(paths){
-  env= loadOrCreateEnv()
+#' @importFrom purrr safely
+#' @importFrom purrr map
+getFunctionsFromFiles = function(paths, output_env = NULL){
+  if( is.null(output_env)){
+    output_env= loadOrCreateEnv()
+  }
+
 
   calling_environment = parent.frame()
 
-  get_functions_safely = purrr::safely(get_functions)
-  errors = c()
-  .getFromFile = function(path){
-    tryCatch({
-
-      print(path)
-      if ( tools::file_ext(path) == 'Rmd'){
-        parseable = knitr::purl(text = readr::read_file(path))
-      } else {
-        parseable = file(path)
-      }
-
-      exprs = rlang::parse_exprs( parseable )
-
-      purrr::walk( exprs,
-              get_functions_safely,
-              call_counts_hash_table = env,
-              calling_environment = calling_environment,
-              needs_substitute = FALSE,
-              evaluate_library = TRUE  )
-    }, error = function(e){
-
-        errors <<- c(errors, e$message)
-        message(e)
-        print(path )
-    })
-    env
-
-  }
-
+  # if it's a directory, walk the directory
   if( dir.exists( paths )){
+
+    # get all R or rmd files in directory
     pathst = dir(paths, "\\.R$",recursive=T, full.names = TRUE)
     #TODO: fix the capitalization
-
     paths = c(pathst, dir(paths, "\\.Rmd$",recursive=T, full.names = TRUE))
 
   } else {
     paths = paths
   }
-  sapply( paths, .getFromFile)
 
+  errors = purrr::map( paths,
+                       .getFromFile,
+                       call_counts_hash_table = output_env,
+                       calling_environment = calling_environment )
   list(
-    result = env,
+    cards = output_env,
     errors = errors )
-  #env
+}
 
+
+#' @importFrom purrr safely
+#' @importFrom purrr walk
+.getFromFile = function(path, call_counts_hash_table, calling_environment ){
+  get_functions_safely = purrr::safely(get_functions)
+
+  if ( is.null(calling_environment)){
+    calling_environment = parent.frame()
+  }
+
+  errors = c()
+
+  tryCatch({
+    print(path)
+    if ( tools::file_ext(path) == 'Rmd'){
+      parseable = knitr::purl(text = readr::read_file(path))
+    } else {
+      parseable = file(path)
+    }
+
+    exprs = rlang::parse_exprs( parseable )
+
+    purrr::walk( exprs,
+                 get_functions_safely,
+                 call_counts_hash_table = call_counts_hash_table,
+                 calling_environment = calling_environment,
+                 needs_substitute = FALSE,
+                 evaluate_library = TRUE,
+                 throw_errors = TRUE )
+  }, error = function(e){
+
+    errors <<- c(errors, e$message)
+    message(e)
+    print(path )
+  })
+
+
+  errors
 }
 
 #

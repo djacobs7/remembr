@@ -102,10 +102,49 @@ reviewCard = function( keyname, time, should_update_bucket, call_counts_hash_tab
   if( is.null(prev_record)){
     stop("record not found")
   }
-  prev_record$bucket_id = nextBucket( prev_record$bucket_id )
+
+  if ( should_update_bucket){
+    prev_record$bucket_id = nextBucket( prev_record$bucket_id )
+  }
+
   prev_record$most_recent_review = time
   call_counts_hash_table[[keyname]] = prev_record
   prev_record
+}
+
+#========
+
+
+#'  Code for merging two hash tables together
+#'
+#' @importFrom rlang env_has
+#' @importFrom rlang env_names
+#' @importFrom rlang env_clone
+mergeCallCountHashTables = function(call_counts_hash_table1, call_counts_hash_table2){
+  c1 = call_counts_hash_table1
+  c2 = call_counts_hash_table2
+
+  out = env_clone( call_counts_hash_table1 )
+  for( key in rlang::env_names(c2)){
+    v2 = call_counts_hash_table2[[key]]
+    if (  rlang::env_has( c1, key ) ){
+      v1 = rlang::env_has( c1, key )
+      out[[key]] = .mergeCards( v1, v2 )
+    } else {
+      out[[key]] = v2
+    }
+  }
+  out
+}
+
+.mergeCards = function(a,b){
+  list(
+    first_use = min(a$first_use, b$first_use, na.rm  = TRUE),
+    most_recent_use = max( a$most_recent_use, b$most_recent_use, na.rm  = TRUE),
+    total_uses = sum( a$total_uses, b$total_uses ),
+    bucket_id = max( a$bucket_id, b$bucket_id, na.rm = TRUE ),
+    most_recent_review = max( a$most_recent_review, b$most_recent_review, na.rm = TRUE )
+  )
 }
 
 #--------  CODE FOR CONVERTING TO DATAFRAME
@@ -163,4 +202,11 @@ convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
       ))
 
   df
+}
+
+
+#==== call counts views:
+
+viewCallCountsReview = function(){
+
 }

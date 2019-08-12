@@ -64,10 +64,29 @@ listPackKeys = function(pack_name){
 
 }
 
-
 createPack = function(){
 
   startPack("advanced-r-functional-programming")
-
+  out = getFunctionsFromFiles(
+    c("repos/adv-r/Functionals.Rmd",
+      "repos/adv-r/Function-factories.Rmd",
+      "repos/adv-r/Function-operators.Rmd"
+    )
+  )
   finishPack()
+
+  startPack("advanced-r-object-oriented")
+  out = getFunctionsFromFiles(
+    c(
+      "repos/adv-r/OO.Rmd",
+      "repos/adv-r/base-types.Rmd"
+    )
+  )
+  finishPack()
+
+
 }
+
+
+
+
