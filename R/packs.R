@@ -64,6 +64,7 @@ listPackKeys = function(pack_name){
 
 }
 
+
 createPack = function(){
 
   startPack("advanced-r-functional-programming")
@@ -79,7 +80,8 @@ createPack = function(){
   out2 = getFunctionsFromFiles(
     c(
       "repos/adv-r/OO.Rmd",
-      "repos/adv-r/base-types.Rmd"
+      "repos/adv-r/base-types.Rmd",
+      "repos/adv-r/S3.Rmd"
     )
   )
   finishPack()

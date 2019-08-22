@@ -116,36 +116,68 @@ reviewCard = function( keyname, time, should_update_bucket, call_counts_hash_tab
 #========
 
 
+
+#' Add a deck
+#'
+#' @examples
+#' addCardDeck( readRDS("packs/advanced-r-object-oriented-part-1" ))
+#'
+#' @export
+addCardDeck = function( deck ){
+  mergeCallCountHashTables( getCallCountsHashTable(), deck, in_place = TRUE )
+}
+
 #'  Code for merging two hash tables together
 #'
 #' @importFrom rlang env_has
+#' @importFrom rlang env_get
 #' @importFrom rlang env_names
 #' @importFrom rlang env_clone
-mergeCallCountHashTables = function(call_counts_hash_table1, call_counts_hash_table2){
+mergeCallCountHashTables = function(call_counts_hash_table1, call_counts_hash_table2, in_place = FALSE){
   c1 = call_counts_hash_table1
   c2 = call_counts_hash_table2
 
-  out = env_clone( call_counts_hash_table1 )
+  if ( in_place ){
+    out = call_counts_hash_table1
+  } else {
+    out = env_clone( call_counts_hash_table1 )
+
+  }
+
   for( key in rlang::env_names(c2)){
-    v2 = call_counts_hash_table2[[key]]
+    v2 = rlang::env_get( c2, key )
     if (  rlang::env_has( c1, key ) ){
-      v1 = rlang::env_has( c1, key )
+      v1 = rlang::env_get( c1, key )
       out[[key]] = .mergeCards( v1, v2 )
     } else {
       out[[key]] = v2
     }
   }
+
   out
 }
 
+
+
 .mergeCards = function(a,b){
-  list(
-    first_use = min(a$first_use, b$first_use, na.rm  = TRUE),
-    most_recent_use = max( a$most_recent_use, b$most_recent_use, na.rm  = TRUE),
-    total_uses = sum( a$total_uses, b$total_uses ),
-    bucket_id = max( a$bucket_id, b$bucket_id, na.rm = TRUE ),
-    most_recent_review = max( a$most_recent_review, b$most_recent_review, na.rm = TRUE )
-  )
+  out = list()
+
+  if ( !is.null( a$first_use) & !is.null( b$first_use ) ) {
+    out$first_use = min(a$first_use, b$first_use, na.rm  = TRUE)
+  }
+  if ( !is.null( a$most_recent_use) & !is.null( b$most_recent_use ) ) {
+    out$most_recent_use = max(a$most_recent_use, b$most_recent_use, na.rm  = TRUE)
+  }
+  if ( !is.null( a$total_uses) & !is.null( b$total_uses ) ) {
+    out$total_uses = sum(a$total_uses, b$total_uses, na.rm  = TRUE)
+  }
+  if ( !is.null( a$bucket_id) & !is.null( b$bucket_id ) ) {
+    out$bucket_id = max(a$bucket_id, b$bucket_id, na.rm  = TRUE)
+  }
+  if ( !is.null( a$most_recent_review) & !is.null( b$most_recent_review ) ) {
+    out$most_recent_review = max(a$most_recent_review, b$most_recent_review, na.rm  = TRUE)
+  }
+  out
 }
 
 #--------  CODE FOR CONVERTING TO DATAFRAME

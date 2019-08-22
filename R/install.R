@@ -6,10 +6,6 @@
 #' @export
 install_remembr = function(){
 
-
-  #cat("Creating ~/.rRemember folder...")
-  #cat("Modifying ~/.Rprofile to ")
-
   dir.create(storage_file_directory)
 
   remembrinstall::install()
@@ -20,6 +16,12 @@ install_remembr = function(){
     "Installing remembr. This will automatically create flashcards for you as you code interactively.  You can uninstall at any time with ",
     crayon::bgWhite("uninstall_remembr()"), "\n"
   ))
+
+  cat(paste0(
+    "\n",
+    "remembr will launch automatically on startup - you can change this in your ~/.rProfile file\n"
+  ))
+
 }
 
 

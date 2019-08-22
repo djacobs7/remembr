@@ -58,6 +58,48 @@ test_that("can create a function within an expression", {
 
 })
 
+test_that("can interpeet library", {
+
+  #TODO: IMPLEMENT ( right now this test has a side effect I'd rather not have.)
+  call_counts_hash_table = loadOrCreateEnv(NULL)
+  get_functions({
+
+    library(psych)
+    cohen.kappa()
+  },
+  call_counts_hash_table
+  )
+
+  testthat::expect_equal(  call_counts_hash_table[['psych::cohen.kappa']]$total_uses, 1 )
+})
+
+
+test_that("can accept a list of libraries", {
+
+  #TODO: IMPLEMENT ( right now this test has a side effect I'd rather not have.)
+  call_counts_hash_table = loadOrCreateEnv(NULL)
+  get_functions({
+    cohen.kappa()
+  },
+  libraries = 'psych',
+  call_counts_hash_table =call_counts_hash_table
+  )
+
+  testthat::expect_equal(  call_counts_hash_table[['psych::cohen.kappa']]$total_uses, 1 )
+})
+
+
+test_that("can deal with a non-existant library", {
+
+  call_counts_hash_table = loadOrCreateEnv(NULL)
+  get_functions({
+    library(bananaface)
+  },
+  call_counts_hash_table
+  )
+
+})
+
 
 
 

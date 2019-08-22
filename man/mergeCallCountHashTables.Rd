@@ -4,7 +4,8 @@
 \alias{mergeCallCountHashTables}
 \title{Code for merging two hash tables together}
 \usage{
-mergeCallCountHashTables(call_counts_hash_table1, call_counts_hash_table2)
+mergeCallCountHashTables(call_counts_hash_table1, call_counts_hash_table2,
+  in_place = FALSE)
 }
 \description{
 Code for merging two hash tables together
