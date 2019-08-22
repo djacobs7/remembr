@@ -26,6 +26,7 @@ updateCard = function(keyname, time = NULL, call_counts_hash_table = NULL){
 }
 
 
+
 .createCard = function(time){
   prev_record = list( first_use =   time,
                       most_recent_use = time,

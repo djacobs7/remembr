@@ -175,6 +175,23 @@ stopRemembr = function(){
   removeTaskCallback("addCallCounts")
 }
 
+.initializeLibraries = function(libraries){
+  if ( is.null(libraries)){
+    libraries = loadOrCreateEnv()
+  }
+  if ( is.character(libraries)){
+    l = libraries
+    libraries = loadOrCreateEnv()
+    for ( lib in l ){
+      libraries[[lib]] = TRUE
+    }
+  }
+  libraries
+}
+
+
+.safely_get_namespace = purrr::safely(getNamespace)
+
 # No side effects from call to library!
 # initRemembr()
 
@@ -196,7 +213,13 @@ stopRemembr = function(){
 #' @importFrom globals walkAST
 #' @importFrom lubridate now
 #' @importFrom lubridate days
-get_functions= function( expression, call_counts_hash_table = NULL, needs_substitute = TRUE, evaluate_library = FALSE , calling_environment = NULL, throw_errors = FALSE){
+get_functions= function( expression,
+                         call_counts_hash_table = NULL,
+                         needs_substitute = TRUE,
+                         libraries = NULL ,
+                         calling_environment = NULL,
+                         throw_errors = FALSE,
+                         documentation_url = NULL){
   #print("analyzing functions")
 
   #TODO: not sure if this is necessary or helpful or doing the right hting
@@ -212,13 +235,18 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
   #print( sub)
 
 
+  libraries = .initializeLibraries(libraries)
+
+
+
 
   ## internal handler for calls in get_functions
   .handleCall = function( call ){
   #  print("HANDLING CALL")
   #  print( call )
+
     could_not_get_keyname = tryCatch({
-      keyname = .get_keyname_from_call( call, calling_environment )
+      keyname = .get_keyname_from_call( call, calling_environment, libraries )
       FALSE
     },
     error = function(e) {
@@ -237,13 +265,21 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     }
     #keyname = .get_keyname_from_call( call )
 
-    if( evaluate_library ){
-      if( keyname == 'base::library' | keyname == 'base::require'){
-        rlang::eval_tidy(call)
+
+    if( keyname == 'base::library' | keyname == 'base::require'   ){
+      library_name = as.character(call[[2]])
+      ns = .safely_get_namespace(library_name)
+      if ( is.null(ns$error)){
+        libraries[[ library_name  ]] = TRUE
+      } else {
+        message( ns$error )
       }
+
     }
 
     updateCard(keyname, call_counts_hash_table = call_counts_hash_table)
+    #addDocumentationURL(keyname, documentation_url, call_counts_hash_table = call_counts_hash_table)
+
     call
   }
 
@@ -263,21 +299,30 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
 
 
 # make sure to pass in a standardized call from pryr::Standardize_call
-.get_keyname_from_call = function( call, calling_environment ){
+.get_keyname_from_call = function( call, calling_environment, libraries ){
+  for ( library in ls(libraries)){  # TRY THE LIBRARY LIST FIRST
+    function_name  = call[[1]] %>% as.character()
+    if ( exists( as.character(function_name) , getNamespace(library), inherits = FALSE ) ){
+      keyname = paste0( library , "::", function_name)
+      return(keyname)
+    }
+  }
 
-  #could_not_standardise_call = tryCatch({
-  standardised_call = pryr::standardise_call( call )
-  #  FALSE
-  #},
-  #error = function(e) {
-  #  message(e)
-  #  cat("\n")
-  #  TRUE
-  #})
+  err = NULL
+  could_not_standardise_call = tryCatch({
+    standardised_call = pryr::standardise_call( call, env = calling_environment )
+    FALSE
+  },
+  error = function(e) {
+    err <<- e
+    TRUE
+  })
 
-  #if( could_not_standardise_call ){
-  #  return(call)
-  #}
+  if (!is.null(err)){
+    stop(err)
+  }
+
+
 
   function_name = standardised_call[[1]]
 
@@ -291,31 +336,41 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
     keyname = deparse(function_name)
     #make me wonder if we should handle all of this in the name checker instead
   } else{
-    qq = rlang::quo(function_name)
 
-    #FIXME:
-    # so - we are basically assuming that if we are in a nested series of functions, that no function is ever redefined.
-    # this is not the safest of assumptions, and will often be incorrect
-    # however, the only way I can think to handle this is by actually executing the code.
-    # Presently this is written like a parser or a compile-time thing.
-    # In order to properly evaluate the environments of things, we would actually need to do this at runtime; or somehow hook into every method that could potentially modify a calling environment.  Maybe these is a way?
-    qq = rlang::quo_set_expr(qq, function_name)
-    qq = rlang::quo_set_env(qq, calling_environment) #TODO: verify this
-
-    expression_string = deparse( rlang::quo_get_expr(qq) )
+    error = NULL
     tryCatch(
       {
+
+        qq = rlang::quo(function_name)
+
+        #FIXME:
+        # so - we are basically assuming that if we are in a nested series of functions, that no function is ever redefined.
+        # this is not the safest of assumptions, and will often be incorrect
+        # however, the only way I can think to handle this is by actually executing the code.
+        # Presently this is written like a parser or a compile-time thing.
+        # In order to properly evaluate the environments of things, we would actually need to do this at runtime; or somehow hook into every method that could potentially modify a calling environment.  Maybe these is a way?
+        qq = rlang::quo_set_expr(qq, function_name)
+        qq = rlang::quo_set_env(qq, calling_environment) #TODO: verify this
+
+        expression_string = deparse( rlang::quo_get_expr(qq) )
+
         environment = pryr::where( expression_string, env = calling_environment )
       },
       error = function(e){
         cat(paste0("remembr:: failed on ", expression_string))
-        stop(e)
+
+        error <<- e
+
       }
     )
+
+
+    if ( !is.null(error) ){ stop(error )}
 
     environmentName = environmentName( environment )
     environmentName = gsub( pattern = "package:", replacement =  "", x =  environmentName)
     keyname = paste0( environmentName , "::", function_name)
+
 
 
   }
@@ -347,7 +402,7 @@ get_functions= function( expression, call_counts_hash_table = NULL, needs_substi
 #' @importFrom rlang parse_exprs
 #' @importFrom purrr safely
 #' @importFrom purrr map
-getFunctionsFromFiles = function(paths, output_env = NULL){
+getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
   if( is.null(output_env)){
     output_env= loadOrCreateEnv()
   }
@@ -367,11 +422,17 @@ getFunctionsFromFiles = function(paths, output_env = NULL){
     paths = paths
   }
 
+  if ( is.null(libraries)){
+    libraries = loadOrCreateEnv()
+  }
+
   errors = purrr::map( paths,
                        .getFromFile,
                        call_counts_hash_table = output_env,
-                       calling_environment = calling_environment )
+                       calling_environment = calling_environment,
+                       libraries = libraries )
   list(
+    libraries = libraries,
     cards = output_env,
     errors = errors )
 }
@@ -379,7 +440,9 @@ getFunctionsFromFiles = function(paths, output_env = NULL){
 
 #' @importFrom purrr safely
 #' @importFrom purrr walk
-.getFromFile = function(path, call_counts_hash_table, calling_environment ){
+.getFromFile = function(path, call_counts_hash_table, calling_environment, libraries  ){
+
+  print(path)
   get_functions_safely = purrr::safely(get_functions)
 
   if ( is.null(calling_environment)){
@@ -388,8 +451,7 @@ getFunctionsFromFiles = function(paths, output_env = NULL){
 
   errors = c()
 
-  tryCatch({
-    print(path)
+  parse_error = tryCatch({
     if ( tools::file_ext(path) == 'Rmd'){
       parseable = knitr::purl(text = readr::read_file(path))
     } else {
@@ -397,20 +459,29 @@ getFunctionsFromFiles = function(paths, output_env = NULL){
     }
 
     exprs = rlang::parse_exprs( parseable )
+    FALSE
+  },
+  error = function(e){
+      message(paste0("parse failure for ", path))
+    TRUE
+  })
 
-    purrr::walk( exprs,
+  if (parse_error){
+    return(errors)
+  }
+  #TODO: fix windows style line breaks
+
+
+    result = purrr::map( exprs,
                  get_functions_safely,
                  call_counts_hash_table = call_counts_hash_table,
                  calling_environment = calling_environment,
                  needs_substitute = FALSE,
-                 evaluate_library = TRUE,
-                 throw_errors = TRUE )
-  }, error = function(e){
+                 libraries = libraries,
+                 throw_errors = TRUE,
+                 documentation_url = path )
 
-    errors <<- c(errors, e$message)
-    message(e)
-    print(path )
-  })
+    errors = result %>% purrr::map( ~.x$errors )
 
 
   errors

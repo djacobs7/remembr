@@ -4,7 +4,7 @@
 \alias{addDocumentationURL}
 \title{Add documentation for a function}
 \usage{
-addDocumentationURL(targetFunction, urls)
+addDocumentationURL(targetFunction, urls, call_counts_hash_table = NULL)
 }
 \description{
 Enter a link that you think documents this function well. IT will show up when you do flashcards

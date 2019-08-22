@@ -1,6 +1,6 @@
 
 
-
+#unusued?
 addTargetFunctions = function( ... ){
   arguments = rlang::enquos(...)
 
@@ -12,7 +12,7 @@ addTargetFunctions = function( ... ){
   storage_hash_table
 }
 
-
+#unused?
 getFunctionPropertiesFromQuosure = function(qq ){
   ##make sure you pass in a quosure
   if( rlang::is_quosure(qq)){
@@ -54,36 +54,65 @@ getFunctionPropertiesFromQuosure = function(qq ){
 #' ( not supported yet! )
 #'
 #' @export
-addDocumentationURL = function( targetFunction, urls ){
+addDocumentationURL = function( targetFunction, urls , call_counts_hash_table = NULL ){
+
+  if ( is.null(call_counts_hash_table)){
+    call_counts_hash_table = getCallCountsHashTable()
+  }
   #addTargetFunction( targetFunction )  #not sure how to do this part!
 
-  qq = rlang::enquo( targetFunction )
-
-  props = getFunctionPropertiesFromQuosure( qq )
-  keyname = props$keyname
-  present_list = storage_hash_table[[keyname]]
-  if ( is.null(present_list)){
-    throw("make sure your target function is already added. FIXME!! add addTargetFunction atop")
+  if ( is.character(targetFunction)){
+    keyname = targetFunction
+  } else {
+    qq = rlang::enquo( targetFunction )
+    props = getFunctionPropertiesFromQuosure( qq )
+    keyname = props$keyname
   }
-  present_list$urls = unique( c( present_list$urls, urls ) )
-  storage_hash_table[[keyname]] = present_list
-  #but the plan here is you can type in a url and this will persist it along with your function name.  easy breezy.
+
+  if (is.null(urls) | length(urls) == 0){
+    return()
+  }
+
+  present_card = call_counts_hash_table[[keyname]]
+
+  if ( is.null( present_card)){
+    stop(paste0( "card ",keyname,  " does not exist, could not add documentation "))
+  }
+
+  present_card$urls = unique( c( present_card$urls, urls ) )
+  call_counts_hash_table[[keyname]] = present_card
+
+  call_counts_hash_table
 }
 
 
-#'
-#'
-#' Get documentation for a url
+#' Get documentation for a function
 #'
 #' Pass in a function and get any urls associated with it
 #' @export
-getDocumentationURL = function( targetFunction ){
-  qq = rlang::enquo( targetFunction )
+getDocumentationURLs = function( targetFunction , call_counts_hash_table ){
 
-  props = getFunctionPropertiesFromQuosure( qq )
-  keyname = props$keyname
-  storage_hash_table[[keyname]]$urls
+  if ( is.null(call_counts_hash_table)){
+    call_counts_hash_table = getCallCountsHashTable()
+  }
+  if ( is.character(targetFunction)){
+    keyname = targetFunction
+  } else{
+    qq = rlang::enquo( targetFunction )
+
+    props = getFunctionPropertiesFromQuosure( qq )
+    keyname = props$keyname
+  }
+
+  if ( rlang::env_has(call_counts_hash_table, keyname)){
+    call_counts_hash_table[[keyname]]$urls
+  } else {
+    return( character()  )
+  }
+
 }
-showTargetFunctions = function(){
-  ls ( storage_hash_table)
-}
+
+
+#showDocumentationUrls = function( storage_env ){
+#  ls ( storage_env )
+#}

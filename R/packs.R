@@ -76,7 +76,7 @@ createPack = function(){
   finishPack()
 
   startPack("advanced-r-object-oriented")
-  out = getFunctionsFromFiles(
+  out2 = getFunctionsFromFiles(
     c(
       "repos/adv-r/OO.Rmd",
       "repos/adv-r/base-types.Rmd"

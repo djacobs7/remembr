@@ -4,10 +4,13 @@
 \alias{flashCards}
 \title{Flashcards for Code}
 \usage{
-flashCards(num_flashcards = 10)
+flashCards(num_flashcards = 10, time_since_last_use = NULL,
+  pack_name = NULL, pack = NULL)
 }
 \arguments{
 \item{num_flashcards}{how many flashcards to do at once.}
+
+\item{time_since_last_use}{time interval since the last time the function was used in console.  For example: lubridate::hours(1)}
 }
 \description{
 Shows flashcards for the methods that will help you become more fluent at R.

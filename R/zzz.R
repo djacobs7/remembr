@@ -8,7 +8,7 @@
       )
     )
   } else {
-
+      packageStartupMessage("Running remembr")
   }
 }
 
@@ -16,3 +16,5 @@
 
   initOptions()
 }
+
+

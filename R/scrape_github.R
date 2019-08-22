@@ -33,13 +33,13 @@ getReposSummary = function(){
 
   errors = c()
 
+
   summary_df = purrr::map_df( paste0(repo_path, repos, "/" ),
                            function(a){
                              print(a)
                              tryCatch({
-                               result = remembr:::getFunctionsFromFile(a)
-
-                               df = remembr:::convertCallCountsToHashTable(result$result)
+                               result = getFunctionsFromFiles(a)
+                               df = convertCallCountsToHashTable(result$cards)
                                df$source = a
                                errors <<- c(errors, result$errors)
                                df})
@@ -138,4 +138,50 @@ compileResults = function(summary_df){
   #result = dist(t(as.matrix( uses %>% select(-name) )) )
   #heatmap(as.matrix(result))
 }
-
+#
+#ggplot(
+#    summary_df %>%
+#      filter(
+#        name == 'R6Class' |
+#          name == '@' | name == 'setClass' | name == 'setGeneric' | name == 'setMethod' | name == 'new' | name == 'is' | name == 'slot' |
+#        name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod') %>%
+#      mutate(
+#       class_type =  ifelse( name == 'R6Class', 'r6',
+#                ifelse( name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod', 's3', 's4' )
+#                )
+#      ) %>%
+#      select(source, name,total_uses, class_type) %>%
+#      group_by(source, class_type) %>%
+#      summarize(
+#        total_uses = sum(total_uses)
+#      ) ,
+#aes( x = source, y = total_uses, fill = class_type) ) + geom_bar(stat='identity') + coord_flip()
+#
+#
+#summary_df %>%
+#  filter(
+#    name == 'R6Class' |
+#      name == '@' | name == 'setClass' | name == 'setGeneric' | name == 'setMethod' | name == 'new' | name == 'is' | name == 'slot' |      name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod') %>%
+#  mutate(
+#    class_type =  ifelse( name == 'R6Class', 'r6',
+#                          ifelse( name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod', 's3', 's4' )
+#    )
+#  ) %>%
+#  select(source, name,total_uses, class_type) %>%
+#  group_by( class_type, name ) %>%
+#  summarize(
+#    total_uses = sum(total_uses)
+#  )
+#
+#summary_df %>%
+#  filter(
+#    name == 'R6Class' |
+#      name == '@' | name == 'setClass' | name == 'setGeneric' | name == 'setMethod' | name == 'new' | name == 'is' | name == 'slot' |      name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod') %>%
+#  mutate(
+#    class_type =  ifelse( name == 'R6Class', 'r6',
+#                          ifelse( name =='class' |name =='UseMethod' | name == 'unclass' | name == 'NextMethod', 's3', 's4' )
+#    )
+#  ) %>%
+#  select(source, name,total_uses, class_type) %>%
+#  filter( name == 'UseMethod')  %>% select(source, total_uses)
+#
