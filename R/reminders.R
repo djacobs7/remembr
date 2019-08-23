@@ -265,6 +265,7 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
         keyname = paste0( package, "::", name )
       }
 
+      should_skip = FALSE
       if( yesNo == 'y'| yesNo == 'Yes' | yesNo == 'YES'){
         should_update_bucket = TRUE
 
@@ -274,9 +275,14 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
         should_update_bucket = FALSE
       } else if ( yesNo == 'q' | yesNo == 'Q' | yesNo == 'QUIT'| yesNo == 'quit' ){
         break
+      } else {
+        should_skip = TRUE
       }
-      time = lubridate::now(tzone = 'UTC')
-      reviewCard( keyname, time, should_update_bucket, pack )
+      if (!should_skip){
+        time = lubridate::now(tzone = 'UTC')
+        reviewCard( keyname, time, should_update_bucket, pack )
+      }
+
     })
   }
 

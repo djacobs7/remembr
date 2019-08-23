@@ -4,12 +4,12 @@
 \alias{addCardDeck}
 \title{Add a deck}
 \usage{
-addCardDeck(deck)
+addCardDeck(deck_name)
 }
 \description{
 Add a deck
 }
 \examples{
-addCardDeck( readRDS("packs/advanced-r-object-oriented-part-1" ))
+addCardDeck( "advanced-r-object-oriented-part-1" )
 
 }
