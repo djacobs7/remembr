@@ -5,7 +5,11 @@
 \title{Code for merging two hash tables together}
 \usage{
 mergeCallCountHashTables(call_counts_hash_table1, call_counts_hash_table2,
-  in_place = FALSE)
+  in_place = FALSE, zero_uses = FALSE)
+}
+\arguments{
+\item{zero_uses}{zero out uses from cc2.  Used when cc1 are results from actual your coding work, and cc2 is a merged in deck from a book ( for example )
+This way we dont break the anything.}
 }
 \description{
 Code for merging two hash tables together

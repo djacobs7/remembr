@@ -5,7 +5,7 @@
 \title{Flashcards for Code}
 \usage{
 flashCards(num_flashcards = 10, time_since_last_use = NULL,
-  pack_name = NULL, pack = NULL)
+  pack = NULL)
 }
 \arguments{
 \item{num_flashcards}{how many flashcards to do at once.}
