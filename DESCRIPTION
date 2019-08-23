@@ -1,6 +1,6 @@
 Package: remembr
 Title: Spaced Repetition Practice for Learning R
-Version: 0.0.0.9003
+Version: 0.0.0.9004
 Authors@R: 
     person(given = "Daniel",
            family = "Jacobs",
@@ -22,5 +22,5 @@ Imports:
     pryr (>= 0.1.4),
     remembrinstall
 Suggests: 
-    testthat
+    testthat (>= 2.1.0)
 Remotes: djacobs7/remembrinstall

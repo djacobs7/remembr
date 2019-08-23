@@ -120,11 +120,15 @@ reviewCard = function( keyname, time, should_update_bucket, call_counts_hash_tab
 #' Add a deck
 #'
 #' @examples
-#' addCardDeck( readRDS("packs/advanced-r-object-oriented-part-1" ))
+#' addCardDeck( "advanced-r-object-oriented-part-1" )
 #'
 #' @export
-addCardDeck = function( deck ){
-  mergeCallCountHashTables( getCallCountsHashTable(), deck, in_place = TRUE, zero_uses = FALSE )
+addCardDeck = function( deck_name ){
+  storage_name = tempfile()
+  downloaded_file = download.file(paste0("https://www.dontyouremember.com/packs/", deck_name, ".Rds"), storage_name )
+  deck = readRDS( storage_name )
+  message(paste0("Installing ",  length(ls(deck$cards)) , " cards from ", deck_name) )
+  mergeCallCountHashTables( getCallCountsHashTable(), deck$cards, in_place = TRUE, zero_uses = FALSE )
 }
 
 #'  Code for merging two hash tables together
