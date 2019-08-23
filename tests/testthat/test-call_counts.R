@@ -210,9 +210,36 @@ test_that("merging works properly", {
   expect_equal(cc1[["base::factor"]]$total_uses , 1 )
   expect_equal(cc1[["stats::lm"]]$total_uses , 1 )
 
-#  fname = "base::factor"
-#  start_time = lubridate::ymd_hms("2019-01-24 19:39:07")
-#  updateCard(fname , time = start_time, call_counts_hash_table = cc)
+})
 
 
+test_that("0 merging works properly", function(){
+  cc1 = loadOrCreateEnv()
+  cc2 = loadOrCreateEnv()
+
+  fname = "base::ls"
+  start_time = lubridate::ymd_hms("2019-01-24 19:39:07")
+  updateCard(fname , time = start_time, call_counts_hash_table = cc1)
+
+  fname = "base::ls"
+  start_time2 = lubridate::ymd_hms("2019-01-24 21:39:07")
+  updateCard(fname , time = start_time2, call_counts_hash_table = cc2)
+
+  fname = "base::factor"
+  start_time2 = lubridate::ymd_hms("2019-01-24 21:39:07")
+  updateCard(fname , time = start_time2, call_counts_hash_table = cc2)
+
+  fname = "stats::lm"
+  start_time2 = lubridate::ymd_hms("2019-01-24 21:39:07")
+  updateCard(fname , time = start_time2, call_counts_hash_table = cc1)
+
+
+  mergeCallCountHashTables( cc1, cc2 , in_place =  TRUE, zero_uses = TRUE)
+
+  expect_equal(cc1[["base::ls"]]$first_use , start_time )
+  expect_equal(cc1[["base::ls"]]$most_recent_use , start_time2 )
+  expect_equal(cc1[["base::ls"]]$total_uses , 1 )
+
+  expect_equal(cc1[["base::factor"]]$total_uses , 0 )
+  expect_equal(cc1[["stats::lm"]]$total_uses , 1 )
 })

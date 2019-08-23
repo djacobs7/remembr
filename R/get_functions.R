@@ -113,7 +113,11 @@ reloadCallCountsHashTable = function(){
   options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
 }
 
-saveCallCountsHashTable = function(){
+saveCallCountsHashTable = function(call_counts_hash_table = NULL){
+
+  if ( is.null(call_counts_hash_table )){
+    call_counts_hash_table = getCallCountsHashTable()
+  }
   if( !file.exists(dirname(call_counts_hash_table_path))){
     stop(paste0( "Could not save call counts hash table, because ", dirname(call_counts_hash_table_path), " does not exist.  Please run remembr::install_remembr() to clear this message.") )
   }
@@ -126,7 +130,7 @@ saveCallCountsHashTable = function(){
   #if ( last_modified_time > last_known_modified_time ){
     #Then don't write anything!
   #} else {
-    saveRDS(  getCallCountsHashTable(), call_counts_hash_table_path, compress = TRUE )
+    saveRDS(  call_counts_hash_table, call_counts_hash_table_path, compress = TRUE )
   #  last_known_modified_time = file.mtime( call_counts_hash_table_path )
   #}
 

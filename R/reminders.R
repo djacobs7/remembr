@@ -200,14 +200,16 @@ getFilteredFlashcardsDataFrame = function( time_since_last_use = NULL, pack_name
 #' @param time_since_last_use time interval since the last time the function was used in console.  For example: lubridate::hours(1)
 #'
 #' @export
-flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name = NULL, pack = NULL){
+flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = NULL){
   start_time = lubridate::now(tzone = 'UTC')
   result_counts = list( comfortable = 0, not_comfortable = 0 )
 
   if ( is.null(pack)){
     pack = getCallCountsHashTable()
   }
-  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name, pack )
+
+  pack_name = NULL
+  df = getFilteredFlashcardsDataFrame(time_since_last_use, pack_name , pack )
   stack = df %>%
     #top_n( num_flashcards, desc(bucket, review_timer )) %>%
     arrange(   review_timer )
@@ -298,6 +300,7 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL, pack_name
   if( num_needs_review > 0 ){
     cat("You can run flashcards(num_flashcards) to study more.\n")
   }
+  #saveCallCountsHashTable( pack )
   invisible(NULL)
 
 

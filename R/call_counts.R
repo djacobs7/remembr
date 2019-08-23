@@ -124,16 +124,22 @@ reviewCard = function( keyname, time, should_update_bucket, call_counts_hash_tab
 #'
 #' @export
 addCardDeck = function( deck ){
-  mergeCallCountHashTables( getCallCountsHashTable(), deck, in_place = TRUE )
+  mergeCallCountHashTables( getCallCountsHashTable(), deck, in_place = TRUE, zero_uses = FALSE )
 }
 
 #'  Code for merging two hash tables together
+#'
+#' @param zero_uses zero out uses from cc2.  Used when cc1 are results from actual your coding work, and cc2 is a merged in deck from a book ( for example )
+#' This way we dont break the anything.
 #'
 #' @importFrom rlang env_has
 #' @importFrom rlang env_get
 #' @importFrom rlang env_names
 #' @importFrom rlang env_clone
-mergeCallCountHashTables = function(call_counts_hash_table1, call_counts_hash_table2, in_place = FALSE){
+mergeCallCountHashTables = function(call_counts_hash_table1,
+                                    call_counts_hash_table2,
+                                    in_place = FALSE,
+                                    zero_uses = FALSE){
   c1 = call_counts_hash_table1
   c2 = call_counts_hash_table2
 
@@ -146,6 +152,10 @@ mergeCallCountHashTables = function(call_counts_hash_table1, call_counts_hash_ta
 
   for( key in rlang::env_names(c2)){
     v2 = rlang::env_get( c2, key )
+
+    if ( zero_uses ){
+      v2$total_uses = 0
+    }
     if (  rlang::env_has( c1, key ) ){
       v1 = rlang::env_get( c1, key )
       out[[key]] = .mergeCards( v1, v2 )

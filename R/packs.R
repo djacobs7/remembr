@@ -84,6 +84,7 @@ createPack = function(){
       "repos/adv-r/S3.Rmd"
     )
   )
+
   finishPack()
 
 
