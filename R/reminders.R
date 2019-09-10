@@ -33,8 +33,8 @@ remindPackage = function( packageNames = 'base', all = FALSE ){
 
   package_string = df %>%
     group_by( package )%>%
-    mutate( str = paste0( "(", dense_rank(review_timer), ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package",
-                          " used ", crayon::bgWhite(total_uses), " times.  ",
+    mutate( str = paste0( "(", dense_rank(review_timer), ") " , crayon::bold(name) , " from the ", .background_highlight(package), " package",
+                          " used ",  .background_highlight(total_uses), " times.  ",
                           "Last used ",
                           timeStampToIntervalString( most_recent_use ),
                           ".",
@@ -51,7 +51,7 @@ remindPackage = function( packageNames = 'base', all = FALSE ){
   )
 
   s = paste0(
-    paste0( "\nHere is everything to review from the ",crayon::bgWhite(per_package_string$package) , " package\n\n"),
+    paste0( "\nHere is everything to review from the ", .background_highlight(per_package_string$package) , " package\n\n"),
     per_package_string$str
   )
 
@@ -59,6 +59,10 @@ remindPackage = function( packageNames = 'base', all = FALSE ){
   cat( paste( s, collapse = "\n") )
 
   invisible(df )
+}
+
+.background_highlight = function(x){
+  crayon::bold(x)
 }
 
 
@@ -74,7 +78,7 @@ upcomingReminders = function(num_methods = 10 ){
 
   package_string = df %>%
     mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) ,
-                          " used ", crayon::bgWhite(total_uses), " times.  ",
+                          " used ",  .background_highlight(total_uses), " times.  ",
                           "Last used ",
                           timeStampToIntervalString( most_recent_use ),
                           ".",
@@ -145,11 +149,11 @@ remindMe = function( num_rows = 5) {
   }
 
   result =top_5 %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) , " from the ", crayon::bgWhite(package), " package") ) %>%
+    mutate( str = paste0( "(", row_number(), ") " , crayon::bold(name) , " from the ",  .background_highlight(package), " package") ) %>%
     select( str )
 
   package_string =package_reminders %>%
-    mutate( str = paste0( "(", row_number(), ") " , crayon::bgWhite(package)) ) %>%
+    mutate( str = paste0( "(", row_number(), ") " ,  .background_highlight(package)) ) %>%
     select( str )
 
   cat("Based on your previous R usage, we recommend that you review the following methods\n")
@@ -159,7 +163,7 @@ remindMe = function( num_rows = 5) {
   #  cat(paste(package_string$str, collapse = "\n"))
 
 
-  cat(paste0( "\n To review a method, just call it in the console or call ", crayon::bgWhite( 'flashCards()' ) ,"."))
+  cat(paste0( "\n To review a method, just call it in the console or call ",  .background_highlight( 'flashCards()' ) ,"."))
 
 
   invisible(result)
@@ -237,7 +241,7 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
     with(data = row, expr = {
 
       #print(paste0("needs review in ", timeStampToIntervalStringFuture( row$review_timer )))
-      str = paste0(  crayon::bold(name) , " from the ", crayon::bgWhite(package), " package")
+      str = paste0(  crayon::bold(name) , " from the ",  .background_highlight(package), " package")
       prompt = paste0( "(", i, ") ", "Do you feel comfortable with ", str ,"? (y/n/q) " )
 
       if (is.na( package  ) | package == ""){
