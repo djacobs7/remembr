@@ -76,14 +76,60 @@ createPack = function(){
   )
   finishPack()
 
+
+  createCardDeck( 'advanced-r-names-values', c(
+    "repos/adv-r/Names-values.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-vectors', c(
+    "repos/adv-r/Vectors.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-subsetting', c(
+    "repos/adv-r/Subsetting.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-control-flow', c(
+    "repos/adv-r/Control-flow.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-functions', c(
+    "repos/adv-r/Functions.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-environments', c(
+    "repos/adv-r/Environments.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-conditions', c(
+    "repos/adv-r/Conditions.Rmd"
+  ))
+
+  createCardDeck( 'advanced-r-oo-2', c(
+    "repos/adv-r/S4.Rmd",
+    "repos/adv-r/R6.Rmd",
+    "repos/adv-r/OO-tradeoffs.Rmd"
+  ))
+
   startPack("advanced-r-object-oriented")
-  out2 = getFunctionsFromFiles(
+
+
+
+  out2 = remembr:::getFunctionsFromFiles(
     c(
-      "repos/adv-r/OO.Rmd",
-      "repos/adv-r/base-types.Rmd",
-      "repos/adv-r/S3.Rmd"
+      "repos/adv-r/S4.Rmd",
+      "repos/adv-r/R6.Rmd",
+      "repos/adv-r/OO-tradeoffs.Rmd"
     )
   )
+
+
+
+  createCardDeck = function(name, files ){
+    out2 = remembr:::getFunctionsFromFiles( files )
+    saveRDS(out2, paste0( "packs/", name) )
+    out2
+  }
 
   finishPack()
 

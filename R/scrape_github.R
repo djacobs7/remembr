@@ -1,3 +1,31 @@
+
+
+scrape_github_tidy_tuesday = function(){
+
+  url =   "https://github.com/topics/r?l=r"
+
+  all_repos = tibble()
+  for ( page in seq_len(20 )){
+    url =paste0("https://api.github.com/search/repositories?q=tidytuesday&page=", page)
+    list_page = xml2::read_html(url)
+    nodes= list_page %>% rvest::html_nodes("p") %>% rvest::html_text() %>% jsonlite::parse_json()
+    repos = nodes$items %>% purrr::map_dfr( function(e) { list( size = e$size, name = e$name, url = e$clone_url, owner= e$owner$login, fullname = e$full_name, updated_at = e$updated_at)})
+  Sys.sleep( 5 )
+    all_repos = rbind( all_repos, repos )
+  }
+  #curl https://api.github.com/search/repositories?q=tetris+language:assembly&sort=stars&order=desc
+
+
+
+
+  saveRDS(all_repos, 'data-local/tidy_tuesday_repos')
+  clone_commands = "mkdir -p {full_name} && git clone {url} {full_name} --depth 1 " %>% glue::glue( full_name = all_repos$fullname, url = all_repos$url)
+  tmpfilename = tempfile()
+  write( clone_commands, tmpfilename )
+}
+
+
+
 scrape_github = function(){
 
   url =   "https://github.com/topics/r?l=r"
