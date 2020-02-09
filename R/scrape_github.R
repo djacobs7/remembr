@@ -1,5 +1,24 @@
 
 
+scrape_github_username = function(username){
+  all_repos = tibble::tibble()
+  for ( page in seq_len(2 )){
+    url  = "https://api.github.com/search/repositories?q=user%3A{username}+fork%3Afalse&page={page}" %>% glue::glue( username = username, page = page )
+    list_page = xml2::read_html(url)
+    nodes= list_page %>% rvest::html_nodes("p") %>% rvest::html_text() %>% jsonlite::parse_json()
+    repos = nodes$items %>% purrr::map_dfr( function(e) { list( size = e$size, name = e$name, url = e$clone_url, owner= e$owner$login, fullname = e$full_name, updated_at = e$updated_at)})
+    Sys.sleep( 5 )
+    all_repos = rbind( all_repos, repos )
+  }
+
+  saveRDS(all_repos, 'data-local/{username}_repos.Rds' %>% glue::glue( username = username))
+  clone_commands = "mkdir -p {full_name} && git clone {url} {full_name} --depth 1 " %>% glue::glue( full_name = all_repos$fullname, url = all_repos$url)
+  tmpfilename = tempfile()
+  write( clone_commands, tmpfilename )
+  tmpfilename
+}
+
+
 scrape_github_tidy_tuesday = function(){
 
   url =   "https://github.com/topics/r?l=r"
