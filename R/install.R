@@ -8,19 +8,22 @@ install_remembr = function(){
 
   dir.create(storage_file_directory)
 
-  remembrinstall::install()
 
 
+  remembr::initRemembr()
 
 
   if ( askYesNo("Would you like remembr to launch automatically on startup?")){
-    remembr::initRemembr()
+
+    remembrinstall::install()
 
     cat(paste0(
       "\n",
       "remembr will launch automatically on startup - you can change this in your ~/.rProfile file\n"
     ))
 
+  } else {
+    cat("\n remembr will not launch on startup.")
   }
   cat(paste0(
     "\n",
