@@ -9,18 +9,27 @@ install_remembr = function(){
   dir.create(storage_file_directory)
 
   remembrinstall::install()
-  remembr::initRemembr()
 
+
+
+
+  if ( askYesNo("Would you like remembr to launch automatically on startup?")){
+    remembr::initRemembr()
+
+    cat(paste0(
+      "\n",
+      "remembr will launch automatically on startup - you can change this in your ~/.rProfile file\n"
+    ))
+
+  }
   cat(paste0(
     "\n",
-    "Installing remembr. This will automatically create flashcards for you as you code interactively.  You can uninstall at any time with ",
+    "Launching remembr. This will automatically create flashcards for you as you code interactively.  You can uninstall at any time with ",
     crayon::bgWhite("uninstall_remembr()"), "\n"
   ))
 
-  cat(paste0(
-    "\n",
-    "remembr will launch automatically on startup - you can change this in your ~/.rProfile file\n"
-  ))
+
+
 
 }
 
