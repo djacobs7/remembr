@@ -1,3 +1,28 @@
+#can also use .first and .last
+#https://www.statmethods.net/interface/customizing.html
+#https://github.com/HenrikBengtsson/startup/blob/master/R/startup.R
+
+#https://github.com/HenrikBengtsson/startup/blob/master/R/install.R
+
+#opts = new.env( hash = TRUE, parent = emptyenv())
+#opts[["should_persist"]] = TRUE
+storage_file_directory = "~/.rRemembr/"
+
+#if ( opts[["should_persist"]]){
+#  dir.create(storage_file_directory,showWarnings = FALSE)
+#}
+
+
+getCallCountsHashTablePath = function(){
+  result= getOption("remembr.call_counts_hash_table_path")
+  if ( is.null ( result )){
+    result = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
+  }
+  result
+}
+
+pack_path = file.path( storage_file_directory, "packs.rds")
+
 
 loadOrCreateEnv = function(path = NULL ){
   if ( is.null(path)){
@@ -15,23 +40,6 @@ loadOrCreateEnv = function(path = NULL ){
 }
 
 
-#can also use .first and .last
-#https://www.statmethods.net/interface/customizing.html
-#https://github.com/HenrikBengtsson/startup/blob/master/R/startup.R
-
-#https://github.com/HenrikBengtsson/startup/blob/master/R/install.R
-
-#opts = new.env( hash = TRUE, parent = emptyenv())
-#opts[["should_persist"]] = TRUE
-storage_file_directory = "~/.rRemembr/"
-
-#if ( opts[["should_persist"]]){
-#  dir.create(storage_file_directory,showWarnings = FALSE)
-#}
-
-
-call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
-
 # we want only one R process modifying the call_counts_hash_table at a time
 # here, if a second process launches, it will take control of the writes
 # previously, whichever process _wrote_ last got to save this state.
@@ -43,10 +51,16 @@ last_known_modified_time = Sys.time()
 #storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
 #storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
 
+
+# TODO: test or remove
 reloadCallCountsHashTable = function(){
 
-
-  options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
+  if( file.exists( getCallCountsHashTablePath() )){
+    env= loadOrCreateEnv( getCallCountsHashTablePath() )
+  } else {
+    env = loadOrCreateEnv(NULL)
+  }
+  options( 'remembr.call_counts_hash_table' = env )
 }
 
 saveCallCountsHashTable = function(call_counts_hash_table = NULL){
@@ -54,8 +68,13 @@ saveCallCountsHashTable = function(call_counts_hash_table = NULL){
   if ( is.null(call_counts_hash_table )){
     call_counts_hash_table = getCallCountsHashTable()
   }
+
+  call_counts_hash_table_path = getCallCountsHashTablePath()
+
   if( !file.exists(dirname(call_counts_hash_table_path))){
-    stop(paste0( "Could not save call counts hash table, because ", dirname(call_counts_hash_table_path), " does not exist.  Please run remembr::install_remembr() to clear this message.") )
+    stop(paste0( "Could not save call counts hash table, because ",
+                 dirname(call_counts_hash_table_path),
+                 " does not exist.  Please run remembr::install_remembr() to clear this message.") )
   }
 
   #if ( !file.exists(call_counts_hash_table_path)){
@@ -83,19 +102,33 @@ initOptions = function(){
   #FIXME: This is currently unsupported ( and may  need to move to the inst directory
   #call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" )
 
-  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, NULL )
+  call_counts_hash_table_path = getCallCountsHashTablePath()
 
+  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path )
+  pack_state =loadOrCreateEnv(pack_path)
 
   op = options()
   op.remembr= list(
     remembr.should_persist = TRUE,
     remembr.call_counts_hash_table_path = call_counts_hash_table_path,
-    remembr.call_counts_hash_table = call_counts_hash_table
+    remembr.call_counts_hash_table = call_counts_hash_table,
+    remembr.pack_state = pack_state
   )
   options( op.remembr )
   toset <- !(names(op.remembr) %in% names(op))
   if(any(toset)) options(op.remembr[toset])
+}
 
+
+clearOptions = function(){
+  op = options()
+  op.remembr= list(
+    remembr.should_persist = NULL,
+    remembr.call_counts_hash_table_path = NULL,
+    remembr.call_counts_hash_table = NULL,
+    remembr.pack_state = NULL
+  )
+  options(op.remembr)
 }
 
 

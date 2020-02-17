@@ -119,10 +119,10 @@ errorCounts = function(){
   a = grep(  "there is no", (summary_obj$errors), value = TRUE )
 
 
-
+#Those are codes for the right-single-quote and left-single-quote
  missing_packages =  tibble(error = a) %>% dplyr::count(error) %>% arrange(desc(n)) %>%
     mutate( error = gsub(pattern = "there is no package called", replacement = "", x = error)) %>%
-    mutate( error = gsub(pattern = "’|‘", replacement = "", x = error)) %>%
+    mutate( error = gsub(pattern = "\u2019|\u2018", replacement = "", x = error)) %>%
     mutate( error = gsub(pattern = " ", replacement = "", x = error))
 }
 

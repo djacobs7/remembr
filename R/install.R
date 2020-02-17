@@ -13,7 +13,7 @@ install_remembr = function(){
   remembr::initRemembr()
 
 
-  if ( askYesNo("Would you like remembr to launch automatically on startup?")){
+  if ( utils::askYesNo("Would you like remembr to launch automatically on startup?")){
 
     remembrinstall::install()
 

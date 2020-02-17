@@ -13,8 +13,5 @@
 }
 
 .onLoad  = function(libname, pkgname){
-
   initOptions()
 }
-
-

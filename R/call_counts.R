@@ -58,10 +58,12 @@ updateCard = function(keyname, time = NULL, call_counts_hash_table = NULL){
 }
 
 #'
-#' Given an id, get the id for the next bucket
+#' Next bucket
 #'
+#' Given an id, get the id for the next bucket
 #' If bucket_id is null, then start from 1
 #'
+#' @param bucket_id the id of the current bucket
 #'
 nextBucket = function(bucket_id ){
   if ( is.null(bucket_id) | length( bucket_id) == 0){
@@ -119,13 +121,18 @@ reviewCard = function( keyname, time, should_update_bucket, call_counts_hash_tab
 
 #' Add a deck
 #'
+#' Downloads a card deck from www.dontyouremember.com ( see TODOTODO for a list
+#' of all card decks )
+#'
+#' @param  deck_name Name of the deck
+#'
 #' @examples
 #' addCardDeck( "advanced-r-object-oriented-part-1" )
 #'
 #' @export
 addCardDeck = function( deck_name ){
   storage_name = tempfile()
-  downloaded_file = download.file(paste0("https://www.dontyouremember.com/packs/", deck_name, ".Rds"), storage_name )
+  downloaded_file = utils::download.file(paste0("https://www.dontyouremember.com/packs/", deck_name, ".Rds"), storage_name )
   deck = readRDS( storage_name )
   message(paste0("Installing ",  length(ls(deck$cards)) , " cards from ", deck_name) )
   mergeCallCountHashTables( getCallCountsHashTable(), deck$cards, in_place = TRUE, zero_uses = FALSE )
@@ -133,6 +140,11 @@ addCardDeck = function( deck_name ){
 
 #'  Code for merging two hash tables together
 #'
+#'  The order shouldn't matter?
+#'
+#' @param call_counts_hash_table1 env1
+#' @param call_counts_hash_table2 env2
+#' @param in_place If this is true, then results will merge into call_counts_hash_table1; otherwise the result in a new environment
 #' @param zero_uses zero out uses from cc2.  Used when cc1 are results from actual your coding work, and cc2 is a merged in deck from a book ( for example )
 #' This way we dont break the anything.
 #'
@@ -194,56 +206,63 @@ mergeCallCountHashTables = function(call_counts_hash_table1,
   out
 }
 
+#'  Gets my call history as a data frame
+#'
+#' @export
+getMyCalls = function(){
+  convertCallCountsToHashTable( getCallCountsHashTable( ))
+}
+
 #--------  CODE FOR CONVERTING TO DATAFRAME
 
 #' convert call counts to hash table
 #'
 #' Helper method for parsing the call_counts_hash_table environment and presenting it as a data frame
 #'
+#' @param call_counts_hash_table A call counts hash table ( like the one you would
+#' get from getCallCountsHashTable() )
+#' @param time The current time.  So that the hash table can have the corret time
+#' since you last reviewed.
+#'
 #' @importFrom  lubridate as_datetime
+#' @importFrom rlang .data
 #' @import dplyr
 convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
   if ( is.null(time)){
     time = lubridate::now(tzone = 'UTC')
   }
 
-  convertEnvToDataFrame  = function( call_counts_hash_table ){
-    result = eapply(call_counts_hash_table, function(a){
-      a$bucket_id = if(  'bucket_id' %in%  names(a)  ) {   a$bucket_id  } else {  nextBucket(c() ) }
-      a$most_recent_review = if(  'most_recent_review' %in%  names(a) ) { a$most_recent_review } else { NA_integer_ }
-      a
-    })
+  df = .convertEnvToDataFrame( call_counts_hash_table )
 
-    df =do.call( rbind, result) %>%
-      dplyr::as_tibble(rownames = 'function_name') %>%
-      dplyr::mutate_all(unlist) %>%
-      mutate( first_use = lubridate::as_datetime(first_use ),
-              most_recent_use = lubridate::as_datetime(most_recent_use ),
-              most_recent_review = lubridate::as_datetime( most_recent_review )
-      )
-    df
-  }
 
-  df = convertEnvToDataFrame( call_counts_hash_table )
 
   #this becomes a default actually!
   df$bucket_timer = getDurationFromBucketId(df$bucket_id )
 
 
+  if ( nrow( df ) == 0 ){
+    return(df)
+  }
+
   df = df %>%
-    tidyr::separate(function_name, c('package','name'), sep = '::', remove = FALSE) %>%
-    mutate(package = ifelse( function_name =="::", 'base', package),
-           name = ifelse( function_name =="::", '::', name)
+    tidyr::separate(.data$function_name, c('package','name'), sep = '::', remove = FALSE) %>%
+    mutate(package = ifelse( .data$function_name =="::", 'base', .data$package),
+           name = ifelse( .data$function_name =="::", '::', .data$name)
     ) %>%
     mutate(
       # THE CORRECT ORDER IS:
       # MOST RECENT ITEMS IN THE MOST RECENT BUCKET
 
-      review_timer = most_recent_use + bucket_timer , #TODO: change to most_recent_review
-      review_timer = if_else( is.na( most_recent_review), review_timer, most_recent_review + bucket_timer )   %>% lubridate::as_datetime())   %>%
+      review_timer = .data$most_recent_use + .data$bucket_timer , #TODO: change to most_recent_review
+      review_timer = if_else(
+                        is.na( .data$most_recent_review),
+                        .data$review_timer,
+                        .data$most_recent_review + .data$bucket_timer ) %>%
+        lubridate::as_datetime()
+    )   %>%
     mutate(
       needs_review = if_else(
-        difftime(review_timer, time ) > 0 ,
+        difftime(.data$review_timer, time ) > 0 ,
         FALSE,
         TRUE
       ))
@@ -251,6 +270,47 @@ convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
   df
 }
 
+
+#' helper function for convertCallCountsToHashTable
+#'
+#' @param call_counts_hash_table A Call counts hash table ( like from
+#' getCallCountsHashTable )
+.convertEnvToDataFrame  = function( call_counts_hash_table ){
+  result = eapply(call_counts_hash_table, function(a){
+    a$bucket_id = if(  'bucket_id' %in%  names(a)  ) {   a$bucket_id  } else {  nextBucket(c() ) }
+    a$most_recent_review = if(  'most_recent_review' %in%  names(a) ) { a$most_recent_review } else { NA_integer_ }
+    a
+  })
+
+  if ( length(result) == 0 ){
+    df = .createEmptyCallCountsDataFrame()
+  } else {
+    df =do.call( rbind, result) %>%
+      dplyr::as_tibble(rownames = 'function_name') %>%
+      dplyr::mutate_all(unlist) %>%
+      mutate( first_use = lubridate::as_datetime(.data$first_use ),
+              most_recent_use = lubridate::as_datetime(.data$most_recent_use ),
+              most_recent_review = lubridate::as_datetime( .data$most_recent_review )
+      )
+  }
+
+
+  df
+}
+
+.createEmptyCallCountsDataFrame = function(){
+  tibble(
+    function_name = character(0),
+    package = character(0),
+    name = character(0),
+    first_use = lubridate::as_datetime(numeric(0)),
+    most_recent_use = lubridate::as_datetime(numeric(0)),
+    total_uses = double(0),
+    bucket_id = double(0),
+    review_timer = lubridate::as_datetime(numeric(0)),
+    needs_review = logical(0)
+  )
+}
 
 #==== call counts views:
 

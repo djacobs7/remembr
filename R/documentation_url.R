@@ -41,7 +41,7 @@ getFunctionPropertiesFromQuosure = function(qq ){
       keyname = keyname
     )
   } else{
-    throw("This function expects a quosure")
+    stop("This function expects a quosure")
   }
   result
 }

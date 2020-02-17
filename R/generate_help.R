@@ -1,4 +1,6 @@
-
+#'
+#'
+#' @importFrom utils capture.output
 extract_help <- function(pkg, fn = NULL, to = c("txt", "html", "latex", "ex")){
   to <- match.arg(to)
   rdbfile <- file.path(find.package(pkg), "help", pkg)
@@ -9,11 +11,13 @@ extract_help <- function(pkg, fn = NULL, to = c("txt", "html", "latex", "ex")){
                       latex = tools::Rd2latex,
                       ex    = tools::Rd2ex
   )
-  f <- function(x) capture.output(convertor(x))
+  f <- function(x) utils::capture.output(convertor(x))
   if(is.null(fn)) lapply(rdb, f) else f(rdb)
 }
 
-
+#'
+#'
+#' @importFrom utils browseURL
 generateCustomHelp = function(pkg, fn = NULL){
   #https://www.rdocumentation.org/packages/utils/versions/3.6.0/source
   path <- file.path(tempdir(), ".R/doc/html")
@@ -31,12 +35,13 @@ generateCustomHelp = function(pkg, fn = NULL){
   port = tools::startDynamicHelp(NA)
   if (port <= 0L){
     stop("could not open help")
+    lib.loc = NULL
     return(library(help = package, lib.loc = lib.loc,
                    character.only = TRUE))
   }
 
 
-  browseURL(paste0("http://127.0.0.1:", port,
+  utils::browseURL(paste0("http://127.0.0.1:", port,
                    "/doc/html/customhelp.html"),
             getOption("browser"))
 }

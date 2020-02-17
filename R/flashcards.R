@@ -15,6 +15,11 @@
 #'
 #' @export
 flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = NULL){
+  #this way we can have a private mode for testing purposes!
+  .flashCards(num_flashcards, time_since_last_use ,  pack)
+}
+
+.flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = NULL, inputs = NULL){
   start_time = lubridate::now(tzone = 'UTC')
   result_counts = list( comfortable = 0, not_comfortable = 0 )
 
@@ -23,18 +28,22 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
   }
 
   pack_name = NULL
-
   df = .getFilteredFlashcardsDataFrame(time_since_last_use, pack_name , pack )
+  if ( nrow( df )== 0){
+    cat("You have no flashcards; do some R coding first")
+    return(invisible(NULL))
+  }
+
   stack = df %>%
     #top_n( num_flashcards, desc(bucket, review_timer )) %>%
     arrange(   .data$review_timer )
 
   .num_flashcards = min( num_flashcards, nrow(df ))
 
-  if ( nrow( df )== 0){
-    cat("You have nothing to review")
-    return(invisible(NULL))
-  }
+  #if ( nrow( df )== 0){
+  #  cat("You have nothing to review")
+  #  return(invisible(NULL))
+  #}
 
   num_needs_review = sum( df$needs_review )
 
@@ -45,7 +54,11 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
   }
 
   cat(paste0( "Don't worry, we will do them in chunks of ", num_flashcards, " at a time"))
-  readline( "Press any key to start\n")
+
+  if ( is.null(inputs)){
+    readline( "Press any key to start\n")
+  }
+
   for ( i in 1:.num_flashcards){
     row = stack[i,]
     with(data = row, expr = {
@@ -69,7 +82,15 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
 
       cat(prompt)
       cat("\n")
-      yesNo = readline()
+
+      if (is.null( inputs) ) {
+        yesNo = readline()
+      }  else {
+        yesNo = inputs[ i ]
+        if( is.na( yesNo)){
+          stop("not enough input commands")
+        }
+      }
 
       if ( name == '::' ){
         keyname = name
@@ -134,6 +155,7 @@ flashCards = function(num_flashcards = 10, time_since_last_use = NULL,  pack = N
                                             call_counts_hash_table = NULL ){
   df = convertCallCountsToHashTable( call_counts_hash_table )%>%
     filter( .data$package != "R_GlobalEnv")
+
 
   if ( !is.null(pack_name)){
     pack_keys = listPackKeys(pack_name)

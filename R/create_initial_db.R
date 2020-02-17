@@ -20,6 +20,7 @@ create_initial_db = function(){
 
   rm( list = c('::', 'base::{'),envir = env)
 
-  saveRDS(env, "data/default_call_counts_hash_table.Rds")
+
+  save(env, "data/default_call_counts_hash_table.rda")
   env
 }

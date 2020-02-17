@@ -1,50 +1,7 @@
+
+
 #https://www.ninds.nih.gov/News-Events/News-and-Press-Releases/Press-Releases/Want-learn-new-skill-Take-some-short-breaks
 
-
-
-
-#https://stat.ethz.ch/R-manual/R-devel/library/base/html/taskCallback.html
-
-#' This just echos the input expressoion
-#'
-#' @param param s-language expression
-#' @param value result of the expression evaluation
-#' @param status logical indicating success or not
-#' @param visible was the output printed
-#'
-#' @param a data object that is accessible to the callback ( passed in from addTaskCallback)
-#'
-#' @return I guess this indicates if the callback succeeded?
-echoExpressionCallback = function(expr, value, status, visible, data){
-  print( paste0( str( expr ) ) )
-
-  TRUE
-}
-
-
-#' This is the main callback.  It can get called on any expression.
-#'  If you call it, it will modify the your state
-#'
-#' @param param s-language expression
-#' @param value result of the expression evaluation
-#' @param status logical indicating success or not
-#' @param visible was the output printed
-#'
-#' @param a data object that is accessible to the callback ( passed in from addTaskCallback)
-#'
-#' @return I guess this indicates if the callback succeeded?
-addCallCountsCallback = function(expr, value, status, visible, data){
-
-  get_functions( expr, getCallCountsHashTable(), needs_substitute = FALSE )
-
-
-  if ( getOption("remembr.should_persist") ){
-    saveCallCountsHashTable()
-
-
-  }
-  TRUE
-}
 
 
 clearCallCounts = function(){
@@ -59,125 +16,6 @@ showCallCounts = function(){
 }
 
 
-loadOrCreateEnv = function(path = NULL, default_env_path = NULL ){
-  if ( is.null(path)){
-      return( new.env( hash = TRUE, parent = emptyenv()))
-  }
-
-  if (file.exists(path)){
-    readRDS( path )
-  } else {
-    if (!is.null( default_env_path)){
-      readRDS(default_env_path)
-    } else {
-      #http://adv-r.had.co.nz/Environments.html
-      #this is a trick for creating private variables.. otherwise packages are not allowed to modify state.
-      #also this is what we wanted to do anyway, a new.env is the same as a hash table in R
-      new.env( hash = TRUE, parent = emptyenv())
-    }
-
-
-  }
-}
-
-
-#can also use .first and .last
-#https://www.statmethods.net/interface/customizing.html
-#https://github.com/HenrikBengtsson/startup/blob/master/R/startup.R
-
-#https://github.com/HenrikBengtsson/startup/blob/master/R/install.R
-
-#opts = new.env( hash = TRUE, parent = emptyenv())
-#opts[["should_persist"]] = TRUE
-storage_file_directory = "~/.rRemembr/"
-
-#if ( opts[["should_persist"]]){
-#  dir.create(storage_file_directory,showWarnings = FALSE)
-#}
-
-
-call_counts_hash_table_path = file.path( storage_file_directory, "call_counts_hash_table.Rds" )
-
-# we want only one R process modifying the call_counts_hash_table at a time
-# here, if a second process launches, it will take control of the writes
-# previously, whichever process _wrote_ last got to save this state.
-# with this patch, it will be whoever launched last
-last_known_modified_time = Sys.time()
-
-storage_hash_table_path =file.path( storage_file_directory,"storage_hash_table_path.Rds" )
-storage_hash_table = loadOrCreateEnv( storage_hash_table_path )
-
-reloadCallCountsHashTable = function(){
-
-
-  options( 'remembr.call_counts_hash_table' = loadOrCreateEnv(call_counts_hash_table_path) )
-}
-
-saveCallCountsHashTable = function(call_counts_hash_table = NULL){
-
-  if ( is.null(call_counts_hash_table )){
-    call_counts_hash_table = getCallCountsHashTable()
-  }
-  if( !file.exists(dirname(call_counts_hash_table_path))){
-    stop(paste0( "Could not save call counts hash table, because ", dirname(call_counts_hash_table_path), " does not exist.  Please run remembr::install_remembr() to clear this message.") )
-  }
-
-  #if ( !file.exists(call_counts_hash_table_path)){
-  #  last_modified_time = as.POSIXct(0, origin ='1970-01-01')
-  #} else {
-  #  last_modified_time = file.mtime(call_counts_hash_table_path )
-  #}
-  #if ( last_modified_time > last_known_modified_time ){
-    #Then don't write anything!
-  #} else {
-    saveRDS(  call_counts_hash_table, call_counts_hash_table_path, compress = TRUE )
-  #  last_known_modified_time = file.mtime( call_counts_hash_table_path )
-  #}
-
-}
-
-
-#'
-#'
-#' Initializes the options
-#'
-#' This is private method and is called either in onLoad or in initRemembr
-#'
-initOptions = function(){
-  #call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, "data/default_call_counts_hash_table.Rds" ) #new.env( hash = TRUE, parent = emptyenv())
-
-  call_counts_hash_table = loadOrCreateEnv( call_counts_hash_table_path, NULL )
-
-
-  op = options()
-  op.remembr= list(
-    remembr.should_persist = TRUE,
-    remembr.call_counts_hash_table_path = call_counts_hash_table_path,
-    remembr.call_counts_hash_table = call_counts_hash_table
-  )
-  options( op.remembr )
-  toset <- !(names(op.remembr) %in% names(op))
-  if(any(toset)) options(op.remembr[toset])
-
-}
-
-
-getCallCountsHashTable = function(){
-  #call_counts_hash_table
-  getOption("remembr.call_counts_hash_table")
-}
-
-#' @export
-initRemembr = function(){
-  initOptions()
-  removeTaskCallback("addCallCounts")
-  addTaskCallback(  addCallCountsCallback, name = "addCallCounts", data = getCallCountsHashTable())
-  invisible(TRUE)
-}
-
-stopRemembr = function(){
-  removeTaskCallback("addCallCounts")
-}
 
 .initializeLibraries = function(libraries){
   if ( is.null(libraries)){
@@ -206,6 +44,15 @@ stopRemembr = function(){
 #' If call_counts_hash_table is NULL, then it will use a default value.
 #' Otherwise it needs an environment which is created like this new.env( hash = TRUE, parent = emptyenv())
 #'
+#' @param expression an R expression.  This will be not be evaluated; but it will be parsed
+#' and the methods found will be returned in the result
+#' @param call_counts_hash_table A call_counts_hash_table environment; this is where results get written to.
+#' @param needs_substitute ( TODO NOT SURE)
+#' @param libraries ( TODO NOT SURE )
+#' @param calling_environment The calling environment for the expression.
+#'  get_functions will try to use the calling_environment to figure out which package is being referenced. Defaults to parent.frame()
+#' @param throw_errors If TRUE this will throw an error if it cannot parse the expression; otherwise it will print a message
+#'
 #' @importFrom rlang quo_set_expr
 #' @importFrom rlang quo_set_env
 #' @importFrom rlang quo_get_expr
@@ -222,10 +69,8 @@ get_functions= function( expression,
                          needs_substitute = TRUE,
                          libraries = NULL ,
                          calling_environment = NULL,
-                         throw_errors = FALSE,
-                         documentation_url = NULL){
+                         throw_errors = FALSE){
   #print("analyzing functions")
-
   #TODO: not sure if this is necessary or helpful or doing the right hting
   if ( is.null( calling_environment )){
     calling_environment = parent.frame()
@@ -392,111 +237,3 @@ get_functions= function( expression,
   printAtomic = function( atomic ){ print( paste0( "atomic: ", atomic) ); atomic}
   globals::walkAST( expr = sub, atomic = printAtomic, name =  printName, call =printCall)
 }
-
-#======  Get Functions From a File ( rmd or R)
-
-#' Get functions from a file
-#'
-#' @examples
-#' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
-#'
-#' TODO: should output a list of missing pacakges
-#'
-#' @importFrom tools file_ext
-#' @importFrom rlang parse_exprs
-#' @importFrom purrr safely
-#' @importFrom purrr map
-getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
-  if( is.null(output_env)){
-    output_env= loadOrCreateEnv()
-  }
-
-
-  calling_environment = parent.frame()
-
-  # if it's a directory, walk the directory
-  if( dir.exists( paths )){
-
-    # get all R or rmd files in directory
-    pathst = dir(paths, "\\.R$",recursive=T, full.names = TRUE)
-    #TODO: fix the capitalization
-    paths = c(pathst, dir(paths, "\\.Rmd$",recursive=T, full.names = TRUE))
-
-  } else {
-    paths = paths
-  }
-
-  if ( is.null(libraries)){
-    libraries = loadOrCreateEnv()
-  }
-
-  errors = purrr::map( paths,
-                       .getFromFile,
-                       call_counts_hash_table = output_env,
-                       calling_environment = calling_environment,
-                       libraries = libraries )
-  list(
-    libraries = libraries,
-    cards = output_env,
-    errors = errors )
-}
-
-
-#' @importFrom purrr safely
-#' @importFrom purrr walk
-.getFromFile = function(path, call_counts_hash_table, calling_environment, libraries  ){
-
-  print(path)
-  get_functions_safely = purrr::safely(get_functions)
-
-  if ( is.null(calling_environment)){
-    calling_environment = parent.frame()
-  }
-
-  errors = c()
-
-  parse_error = tryCatch({
-    if ( tools::file_ext(path) == 'Rmd'){
-      parseable = knitr::purl(text = readr::read_file(path))
-    } else {
-      parseable = file(path)
-    }
-
-    exprs = rlang::parse_exprs( parseable )
-    FALSE
-  },
-  error = function(e){
-      message(paste0("parse failure for ", path))
-    TRUE
-  })
-
-  if (parse_error){
-    return(errors)
-  }
-  #TODO: fix windows style line breaks
-
-
-    result = purrr::map( exprs,
-                 get_functions_safely,
-                 call_counts_hash_table = call_counts_hash_table,
-                 calling_environment = calling_environment,
-                 needs_substitute = FALSE,
-                 libraries = libraries,
-                 throw_errors = TRUE,
-                 documentation_url = path )
-
-    errors = result %>% purrr::map( ~.x$errors )
-
-
-  errors
-}
-
-#
-#sample_rmd ='repos/tidytext/vignettes/tidytext.Rmd'
-#
-#path_name = sample_rmd
-#if ( tools::file_ext(path_name) == 'Rmd'){
-#  r_code = knitr::purl(path_name)
-#}
-
-

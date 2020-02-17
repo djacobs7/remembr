@@ -4,9 +4,16 @@
 #' Get functions from a file
 #'
 #' @examples
-#' env = getFunctionsFromFile('~/git/leitnr/R/get_functions.R' )
+#' file_path = system.file( "test-files/simple_test.R", package = 'remembr')
+#' env = getFunctionsFromFile(file_path)
+#' convertCallCountsToHashTable(env)
+#'
 #'
 #' TODO: should output a list of missing pacakges
+#'
+#' @param paths a vector of paths to parse. if you pass in a directory, it will
+#' walk that directory, looking for any files that end in R or Rmd
+#' @param output_env An environment that you want the results written to.   ( TODO Deprecate)
 #'
 #' @importFrom tools file_ext
 #' @importFrom rlang parse_exprs
@@ -35,12 +42,13 @@ getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
   if ( is.null(libraries)){
     libraries = loadOrCreateEnv()
   }
-
+  names(paths) = paths
   errors = purrr::map( paths,
                        .getFromFile,
                        call_counts_hash_table = output_env,
                        calling_environment = calling_environment,
                        libraries = libraries )
+  errors = errors %>% purrr::compact()
   list(
     libraries = libraries,
     cards = output_env,
@@ -72,7 +80,7 @@ getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
     FALSE
   },
   error = function(e){
-    message(paste0("parse failure for ", path))
+    message(e$message)
     TRUE
   })
 
@@ -88,10 +96,11 @@ getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
                        calling_environment = calling_environment,
                        needs_substitute = FALSE,
                        libraries = libraries,
-                       throw_errors = TRUE,
-                       documentation_url = path )
+                       throw_errors = TRUE)
 
-  errors = result %>% purrr::map( ~.x$errors )
+  #TODO: in a future version, we may decide to preserve the 'documentaion_url' here
+
+  errors = result %>% purrr::map( ~.x$error ) %>% purrr::compact()
 
 
   errors
