@@ -20,6 +20,7 @@ Imports:
     rlang (>= 0.3.0.1),
     globals  (>= 0.12.4),
     pryr (>= 0.1.4),
+    purrr,
     remembrinstall
 Suggests: 
     testthat (>= 2.1.0)

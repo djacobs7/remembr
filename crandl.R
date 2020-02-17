@@ -1,69 +1,20 @@
-contrib = xml2::read_html("https://cran.r-project.org/src/contrib/")
-
-table = contrib %>% rvest::html_table()
-
-
-df =table[[1]] %>%
-  as_tibble(.name_repair = 'unique') %>%
-  mutate( unit = stringr::str_extract(Size, "([A-Z])" )) %>%
-  mutate( num = readr::parse_number(Size)) %>%
-  mutate( size_in_bytes = ifelse( unit == 'K',
-                                  num * 1000,
-                                  ifelse( unit =='M', num * 1000 * 1000, NA ) ) )
-
-
-all_r_packages = df %>%
-  filter( !is.na(size_in_bytes)) %>%
-  select(Name) %>%
-  mutate( pkname = gsub(".tar.gz", "", Name) ) %>%
-  tidyr::separate( pkname, sep ="_", into = c('pkname', 'v')) %>%
-  filter(!is.na(v))
-
-top_downloads = cranlogs::cran_top_downloads(count = 100)
-
-
-cranlogs::cran_downloads(when = "last-week", packages =all_r_packages$pkname[1:20])
-
-cranlogs::cran_downloads(when = "last-week", packages =top_downloads$package)
-
-#IDEA:
-
-# NO GIT
-
-# AN R PACKAGE TO JUST SAVE YOUR CODE TO A REMOTE GIT REPO  .  IT AUTO COMMITS FOR YOU AND HAS BETTER SYNTAX THAN GIT.
-# ITS FREE LOCAL; YOU PAY FOR THE SHARED STORAGE
-# AND YOU CAN GET GET BACKUPS... PAY FOR CODE REVIEWS...  GET AUTOMATIC CODE ANNOTATIONS
-
-
-packages_path = "/Users/djacobs7/git/leitnr/packages/"
-packages_zipped_path = "/Users/djacobs7/git/leitnr/packages_zipped/"
-
-
-download_package = function(package_name ){
-  if (!dir.exists( paste0( packages_path, package_name) )){
-    zipped = download.packages(pkgs = package_name,
-                               destdir = packages_zipped_path,
-                               type = "source")[,2]
-
-
-    untar( zipped, exdir =paste0( packages_path) )
-  }
-}
-
-
-top_downloads$package %>% purrr::walk(download_package)
 
 
 
 
-getCardsFromTidyTuesday = function(package_name ){
+#' get tidy tuesday cards
+#'
+#' given the predownloaded packages, analyze the packages for method calls
+#'
+#'
+getCardsFromTidyTuesday = function(package_name, root_dir ){
 
 
   package_name= as.character(package_name)
 
   print("=======")
   print(package_name)
-  package_path= paste0("~/git/leitnr/external_sources/tidy_tuesday/", package_name )
+  package_path= paste0(root_dir, package_name )
   #namespace_info = parseNamespaceFile( package = package_name, package.lib = "~/git/leitnr/packages/")
   #imports =namespace_info$imports %>% purrr::map_chr( ~.x[[1]])
   imports = c()
@@ -97,15 +48,101 @@ getCardsFromTidyTuesday = function(package_name ){
 
 }
 
-t = getCardsFromTidyTuesday("MarcelvonReth/tidytuesday")
+#'
+#'
+#'  after the tidy tuesday repos were downloaded, run this code to analyze them as a batch
+#'
+analyze_all_tidy_tuesday = function(){
 
-tidy_tuesday_repos = readRDS("data-local/tidy_tuesday_repos")
+  #t = getCardsFromTidyTuesday("MarcelvonReth/tidytuesday")
 
-tidy_tue_fns =   tidy_tuesday_repos$fullname%>%
-  purrr::map(  ~getCardsFromTidyTuesday(.x ), .id = 'fullname' )
+  tidy_tuesday_repos = readRDS("data-local/tidy_tuesday_repos")
+  root_dir = "~/git/leitnr/external_sources/tidy_tuesday/"
+  tidy_tue_fns =   tidy_tuesday_repos$fullname%>%
+    purrr::map(  ~getCardsFromTidyTuesday(.x, root_dir ), .id = 'fullname' )
 
-saveRDS( tidy_tue_fns, "data-local/tidy_tue_fns.Rds")
+  saveRDS( tidy_tue_fns, "data-local/tidy_tue_fns.Rds")
 
+}
+
+
+analyze_all_username = function(){
+
+
+    repos =readRDS("data-local/EmilHvitfeldt_repos.Rds")
+
+
+    root_dir = "~/git/leitnr/external_sources/user_EmilHvitfeldt/"
+
+    emil_fns =   repos$fullname%>%
+      purrr::map(  ~getCardsFromTidyTuesday(.x, root_dir ), .id = 'fullname' )
+
+    saveRDS( emil_fns, "data-local/emil_fns.Rds")
+
+
+}
+
+
+#' get list of top downloads from CRAN
+get_top_downloads_from_cran = function(){
+  contrib = xml2::read_html("https://cran.r-project.org/src/contrib/")
+
+  table = contrib %>% rvest::html_table()
+
+
+  df =table[[1]] %>%
+    as_tibble(.name_repair = 'unique') %>%
+    mutate( unit = stringr::str_extract(Size, "([A-Z])" )) %>%
+    mutate( num = readr::parse_number(Size)) %>%
+    mutate( size_in_bytes = ifelse( unit == 'K',
+                                    num * 1000,
+                                    ifelse( unit =='M', num * 1000 * 1000, NA ) ) )
+
+
+  all_r_packages = df %>%
+    filter( !is.na(size_in_bytes)) %>%
+    select(Name) %>%
+    mutate( pkname = gsub(".tar.gz", "", Name) ) %>%
+    tidyr::separate( pkname, sep ="_", into = c('pkname', 'v')) %>%
+    filter(!is.na(v))
+
+  top_downloads = cranlogs::cran_top_downloads(count = 100)
+
+
+  cranlogs::cran_downloads(when = "last-week", packages =all_r_packages$pkname[1:20])
+
+  cranlogs::cran_downloads(when = "last-week", packages =top_downloads$package)
+
+  top_downloads
+}
+#IDEA:
+
+# NO GIT
+
+# AN R PACKAGE TO JUST SAVE YOUR CODE TO A REMOTE GIT REPO  .  IT AUTO COMMITS FOR YOU AND HAS BETTER SYNTAX THAN GIT.
+# ITS FREE LOCAL; YOU PAY FOR THE SHARED STORAGE
+# AND YOU CAN GET GET BACKUPS... PAY FOR CODE REVIEWS...  GET AUTOMATIC CODE ANNOTATIONS
+
+
+packages_path = "/Users/djacobs7/git/leitnr/packages/"
+packages_zipped_path = "/Users/djacobs7/git/leitnr/packages_zipped/"
+
+
+download_package = function(package_name ){
+  if (!dir.exists( paste0( packages_path, package_name) )){
+    zipped = download.packages(pkgs = package_name,
+                               destdir = packages_zipped_path,
+                               type = "source")[,2]
+
+
+    untar( zipped, exdir =paste0( packages_path) )
+  }
+}
+
+download_top_cran_packages = function(){
+  top_downloads = get_top_downloads_from_cran()
+  top_downloads$package %>% purrr::walk(download_package)
+}
 
 
 getCardsFromPackage = function(package_name ){
@@ -153,31 +190,38 @@ all_imports = top_downloads$package%>%
   purrr::map( ~list(.x = .x )) %>%
   purrr::map(  ~getCardsFromPackage(.x ), .id = 'package' )
 
-package_fns2 = top_downloads$package%>%
-  purrr::map( ~list(.x = .x )) %>%
-  purrr::map(  ~getCardsFromPackage(.x ), .id = 'package' )
 
-saveRDS( package_fns2, "package_fns2.Rds")
+analyze_cran_packages = function(top_downloads){
+  package_fns2 = top_downloads$package%>%
+    purrr::map( ~list(.x = .x )) %>%
+    purrr::map(  ~getCardsFromPackage(.x ), .id = 'package' )
+
+  saveRDS( package_fns2, "package_fns2.Rds")
+}
+
+
+cran_package_analysis_to_df = function(){
+  dfs = unlist(package_fns2, recursive = FALSE ) %>%
+    purrr::keep(  function(.x){
+      if(is.character(.x)){ FALSE}
+      else if (!( 'cards' %in% names(.x) )){FALSE}
+      else
+      {  ls(.x$cards)%>%length() != 0 }
+
+    }) %>%
+    purrr::map_dfr(
+      function(.x){
+        out = remembr:::convertCallCountsToHashTable( .x$cards)
+        out$subpath = .x$subpath
+        out$package_name = .x$package_name
+        out
+      }
+      , .id = 'source' )
+  dfs
+}
 
 
 
-
-dfs = unlist(package_fns2, recursive = FALSE ) %>%
-  purrr::keep(  function(.x){
-    if(is.character(.x)){ FALSE}
-                else if (!( 'cards' %in% names(.x) )){FALSE}
-               else
-              {  ls(.x$cards)%>%length() != 0 }
-
-  }) %>%
-  purrr::map_dfr(
-                    function(.x){
-                      out = remembr:::convertCallCountsToHashTable( .x$cards)
-                      out$subpath = .x$subpath
-                      out$package_name = .x$package_name
-                      out
-                    }
-                    , .id = 'source' )
 
 
 
