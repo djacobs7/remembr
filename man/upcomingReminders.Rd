@@ -6,6 +6,9 @@
 \usage{
 upcomingReminders(num_methods = 10)
 }
+\arguments{
+\item{num_methods}{How many methods to show}
+}
 \description{
 Prints out the methods that will need to be reviewed next time you do a review
 }

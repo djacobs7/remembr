@@ -6,8 +6,22 @@
 \usage{
 get_functions(expression, call_counts_hash_table = NULL,
   needs_substitute = TRUE, libraries = NULL,
-  calling_environment = NULL, throw_errors = FALSE,
-  documentation_url = NULL)
+  calling_environment = NULL, throw_errors = FALSE)
+}
+\arguments{
+\item{expression}{an R expression.  This will be not be evaluated; but it will be parsed
+and the methods found will be returned in the result}
+
+\item{call_counts_hash_table}{A call_counts_hash_table environment; this is where results get written to.}
+
+\item{needs_substitute}{( TODO NOT SURE)}
+
+\item{libraries}{( TODO NOT SURE )}
+
+\item{calling_environment}{The calling environment for the expression.
+get_functions will try to use the calling_environment to figure out which package is being referenced. Defaults to parent.frame()}
+
+\item{throw_errors}{If TRUE this will throw an error if it cannot parse the expression; otherwise it will print a message}
 }
 \description{
 If call_counts_hash_table is NULL, then it will use a default value.

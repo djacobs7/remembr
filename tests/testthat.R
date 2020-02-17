@@ -1,4 +1,4 @@
 library(testthat)
-library(leitnr)
+library(remembr)
 
-test_check("leitnr")
+test_check("remembr")

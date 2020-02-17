@@ -58,19 +58,20 @@ test_that("can create a function within an expression", {
 
 })
 
-test_that("can interpeet library", {
+#'
+test_that("can interpet library", {
 
   #TODO: IMPLEMENT ( right now this test has a side effect I'd rather not have.)
   call_counts_hash_table = loadOrCreateEnv(NULL)
   get_functions({
 
-    library(psych)
-    cohen.kappa()
+    library(lubridate)
+    date()
   },
   call_counts_hash_table
   )
 
-  testthat::expect_equal(  call_counts_hash_table[['psych::cohen.kappa']]$total_uses, 1 )
+  testthat::expect_equal(  call_counts_hash_table[['lubridate::date']]$total_uses, 1 )
 })
 
 
@@ -79,24 +80,28 @@ test_that("can accept a list of libraries", {
   #TODO: IMPLEMENT ( right now this test has a side effect I'd rather not have.)
   call_counts_hash_table = loadOrCreateEnv(NULL)
   get_functions({
-    cohen.kappa()
+    date()
   },
-  libraries = 'psych',
+  libraries = 'lubridate',
   call_counts_hash_table =call_counts_hash_table
   )
 
-  testthat::expect_equal(  call_counts_hash_table[['psych::cohen.kappa']]$total_uses, 1 )
+  testthat::expect_equal(  call_counts_hash_table[['lubridate::date']]$total_uses, 1 )
 })
 
 
 test_that("can deal with a non-existant library", {
 
   call_counts_hash_table = loadOrCreateEnv(NULL)
-  get_functions({
-    library(bananaface)
-  },
-  call_counts_hash_table
-  )
+  expect_error({
+    get_functions({
+      library(bananaface)
+    },
+    call_counts_hash_table
+    )
+  },"there is no package called .bananaface.")
+
+  #testthat::expect_equal(  call_counts_hash_table[['library']]$total_uses, 1 )
 
 })
 
@@ -112,38 +117,4 @@ testthat::test_that("we handle namespaces properly", {
   }, call_counts_hash_table)
   testthat::expect_equal(  call_counts_hash_table[['stats::lm']]$total_uses, 1 )
 
-})
-
-test_that("can_add_documentation", {
-  addTargetFunctions(pryr::standardise_call)
-  addDocumentationURL(pryr::standardise_call, "http://adv-r.had.co.nz/Expressions.html#calls")
-
-  addTargetFunctions(parent.frame)
-  addDocumentationURL(parent.frame, "http://adv-r.had.co.nz/Environments.html")
-
-  addTargetFunctions(addTaskCallback)
-  addDocumentationURL(addTaskCallback , "http://developer.r-project.org/TaskHandlers.pdf")
-
-})
-
-test_that("can add a target function",{
-  addTargetFunctions( lm, dplyr::summarise )
-
-
-  addTargetFunctions(lm)
-  addTargetFunctions(new.env)
-  addTargetFunctions(ls)
-  addTargetFunctions(parent.frame)
-
-  currentTargets = showTargetFunctions()
-
-  expect_true( grep( "stats::lm", currentTargets) != 0 )
-  expect_true( grep( "dplyr::summarise", currentTargets) != 0 )
-  expect_true( grep( "base::new.env", currentTargets) != 0 )
-
-  # FIND OUT WHAT THESE DO AND TEST THEM
-  #createTargetFunctions( 1 )
-  #createTargetFunctions( NULL )
-  #createTargetFunctions( a + 1 )
-  #createTargetFunctions( 1 + 2 )
 })

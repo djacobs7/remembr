@@ -146,7 +146,7 @@ test_that("bucket review logic is not bonkers", {
   cc_df = convertCallCountsToHashTable(cc, time = review_time_1)
   expect_true(cc_df$needs_review)
 
- reviewCard( "base::ls", time = review_time_1, call_counts_hash_table = cc )
+ reviewCard( "base::ls", time = review_time_1, should_update_bucket = TRUE, call_counts_hash_table = cc )
 
  review_time_2 =  start_time + lubridate::minutes(12)
  cc_df = convertCallCountsToHashTable(cc, time = review_time_2)

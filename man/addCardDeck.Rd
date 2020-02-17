@@ -6,8 +6,12 @@
 \usage{
 addCardDeck(deck_name)
 }
+\arguments{
+\item{deck_name}{Name of the deck}
+}
 \description{
-Add a deck
+Downloads a card deck from www.dontyouremember.com ( see TODOTODO for a list
+of all card decks )
 }
 \examples{
 addCardDeck( "advanced-r-object-oriented-part-1" )

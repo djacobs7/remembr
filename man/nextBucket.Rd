@@ -2,10 +2,14 @@
 % Please edit documentation in R/call_counts.R
 \name{nextBucket}
 \alias{nextBucket}
-\title{Given an id, get the id for the next bucket}
+\title{Next bucket}
 \usage{
 nextBucket(bucket_id)
 }
+\arguments{
+\item{bucket_id}{the id of the current bucket}
+}
 \description{
+Given an id, get the id for the next bucket
 If bucket_id is null, then start from 1
 }

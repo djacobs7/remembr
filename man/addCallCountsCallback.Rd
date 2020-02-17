@@ -2,26 +2,28 @@
 % Please edit documentation in R/get_functions.R
 \name{addCallCountsCallback}
 \alias{addCallCountsCallback}
-\title{This is the main callback.  It can get called on any expression.
-If you call it, it will modify the your state}
+\title{Add Call Counts Callback}
 \usage{
 addCallCountsCallback(expr, value, status, visible, data)
 }
 \arguments{
+\item{expr}{an expression}
+
 \item{value}{result of the expression evaluation}
 
 \item{status}{logical indicating success or not}
 
 \item{visible}{was the output printed}
 
-\item{param}{s-language expression}
-
-\item{a}{data object that is accessible to the callback ( passed in from addTaskCallback)}
+\item{data}{data object that is accessible to the callback ( passed in from addTaskCallback)}
 }
 \value{
 I guess this indicates if the callback succeeded?
 }
 \description{
 This is the main callback.  It can get called on any expression.
-If you call it, it will modify the your state
+If you call it, it will modify the your state.
+}
+\details{
+This follows the standard API of any R callback ( @see addTaskHandlers)
 }

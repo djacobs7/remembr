@@ -8,9 +8,15 @@ mergeCallCountHashTables(call_counts_hash_table1, call_counts_hash_table2,
   in_place = FALSE, zero_uses = FALSE)
 }
 \arguments{
+\item{call_counts_hash_table1}{env1}
+
+\item{call_counts_hash_table2}{env2}
+
+\item{in_place}{If this is true, then results will merge into call_counts_hash_table1; otherwise the result in a new environment}
+
 \item{zero_uses}{zero out uses from cc2.  Used when cc1 are results from actual your coding work, and cc2 is a merged in deck from a book ( for example )
 This way we dont break the anything.}
 }
 \description{
-Code for merging two hash tables together
+The order shouldn't matter?
 }
