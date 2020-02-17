@@ -1,6 +1,6 @@
 Package: remembr
 Title: Spaced Repetition Practice for Learning R
-Version: 0.0.0.9004
+Version: 0.0.0.9005
 Authors@R: 
     person(given = "Daniel",
            family = "Jacobs",
