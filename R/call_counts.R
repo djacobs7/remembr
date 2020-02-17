@@ -299,7 +299,7 @@ convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
 }
 
 .createEmptyCallCountsDataFrame = function(){
-  tibble(
+  tibble::tibble(
     function_name = character(0),
     package = character(0),
     name = character(0),

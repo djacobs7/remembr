@@ -18,10 +18,12 @@ Imports:
     dplyr (>= 0.7.8),
     lubridate (>= 1.7.4),
     rlang (>= 0.3.0.1),
-    globals  (>= 0.12.4),
+    globals (>= 0.12.4),
     pryr (>= 0.1.4),
     purrr,
-    remembrinstall
+    remembrinstall,
+    knitr,
+    tibble
 Suggests: 
     testthat (>= 2.1.0)
 Remotes: djacobs7/remembrinstall

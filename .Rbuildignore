@@ -27,3 +27,6 @@
 ^scraper.py$
 
 ^R/scrape_github.R$
+
+^_pkgdown.yml$
+^scripts$

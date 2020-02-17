@@ -1,10 +1,15 @@
 #'
 #'
 #' @importFrom utils capture.output
+#' @importFrom tools Rd2txt
+#' @importFrom tools Rd2HTML
+#' @importFrom tools Rd2latex
+#' @importFrom tools Rd2ex
+#'
 extract_help <- function(pkg, fn = NULL, to = c("txt", "html", "latex", "ex")){
   to <- match.arg(to)
   rdbfile <- file.path(find.package(pkg), "help", pkg)
-  rdb <- tools:::fetchRdDB(rdbfile, key = fn)
+  rdb <- fetchRdDB(rdbfile, key = fn)
   convertor <- switch(to,
                       txt   = tools::Rd2txt,
                       html  = tools::Rd2HTML,
@@ -44,4 +49,35 @@ generateCustomHelp = function(pkg, fn = NULL){
   utils::browseURL(paste0("http://127.0.0.1:", port,
                    "/doc/html/customhelp.html"),
             getOption("browser"))
+}
+
+
+# this code is copied from fetchRdDB
+# it's pasted here directly in case something changes in the tools package
+fetchRdDB = function (filebase, key = NULL)
+{
+  fun <- function(db) {
+    vals <- db$vals
+    vars <- db$vars
+    datafile <- db$datafile
+    compressed <- db$compressed
+    envhook <- db$envhook
+    fetch <- function(key) lazyLoadDBfetch(vals[key][[1L]],
+                                           datafile, compressed, envhook)
+    if (length(key)) {
+      if (key %notin% vars)
+        stop(gettextf("No help on %s found in RdDB %s",
+                      sQuote(key), sQuote(filebase)), domain = NA)
+      fetch(key)
+    }
+    else {
+      res <- lapply(vars, fetch)
+      names(res) <- vars
+      res
+    }
+  }
+  res <- lazyLoadDBexec(filebase, fun)
+  if (length(key))
+    res
+  else invisible(res)
 }

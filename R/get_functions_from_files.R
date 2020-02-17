@@ -3,13 +3,15 @@
 
 #' Get functions from a file
 #'
+#' In a future version:
+#' TODO: should output a list of missing pacakges
+#'
 #' @examples
 #' file_path = system.file( "test-files/simple_test.R", package = 'remembr')
-#' env = getFunctionsFromFile(file_path)
+#' env = getFunctionsFromFiles(file_path)
 #' convertCallCountsToHashTable(env)
 #'
 #'
-#' TODO: should output a list of missing pacakges
 #'
 #' @param paths a vector of paths to parse. if you pass in a directory, it will
 #' walk that directory, looking for any files that end in R or Rmd
@@ -58,6 +60,8 @@ getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
 
 #' @importFrom purrr safely
 #' @importFrom purrr walk
+#' @importFrom readr read_file
+#' @importFrom knitr purl
 .getFromFile = function(path, call_counts_hash_table, calling_environment, libraries  ){
 
   print(path)
