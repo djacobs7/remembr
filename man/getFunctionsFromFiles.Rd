@@ -18,7 +18,7 @@ TODO: should output a list of missing pacakges
 }
 \examples{
 file_path = system.file( "test-files/simple_test.R", package = 'remembr')
-env = getFunctionsFromFile(file_path)
+env = getFunctionsFromFiles(file_path)
 convertCallCountsToHashTable(env)
 
 

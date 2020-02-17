@@ -1,1 +1,68 @@
 check this out: https://github.com/github/semantic
+
+
+#fixme:
+
+1) get a list of all loaded packages
+2) if there is an error due to undefined function; then define the functiona nd continue
+3) make sure library only gets called int ehe current namespace
+
+
+TODO:
+
+1) Write a blog post about a specific package (or talk )
+2) consider creating a card-pack for that talk
+3) consider making it so cards actually have code associated with them
+4) fix it so the flashcards dont delete themselves if you have another R running.
+5) add more tests
+
+
+How could the shared database work
+
+1) we could use sql light - an actual shared database
+2)
+  a) we could suffix the written file with a pid
+  b) on read ( which only happens on startup ), we read from all files suffixed with a pid.   we merge into a file for the current pid, cleanup existing .pid files, and write to a shared root.
+  c) on startup
+
+3)  on startup
+  write a pidfile
+
+  on write:
+    check the last modified time of the shared rds file
+
+    is it greater than the last known write that this process is aware of?
+
+    if so, then don't write!
+
+
+Otehr todos:
+
+what if a package is not installed?
+
+
+NEW TODO:
+
+Prep for Saturday  DONE
+Post on the slack channel  DONE
+Review presentation  DONE
+Test fresh installation  DONE
+Make it so you can downoad a card pack!  DONE
+
+TODO:
+
+Let you use it without using R ( in a browser)
+
+
+Consider adding a startup message!  NOT DONE
+Publish on the top 100 methods  NOT DONE
+Make it more approachable  NOT DONE
+Show examples  NOT DONE
+
+
+Known bugs:
+
+-> R6
+-> the := operator
+-> imports:remembr
+-> new libraries that are not installed

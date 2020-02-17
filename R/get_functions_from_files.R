@@ -21,6 +21,8 @@
 #' @importFrom rlang parse_exprs
 #' @importFrom purrr safely
 #' @importFrom purrr map
+#'
+#' @export
 getFunctionsFromFiles = function(paths, output_env = NULL, libraries = NULL){
   if( is.null(output_env)){
     output_env= loadOrCreateEnv()
