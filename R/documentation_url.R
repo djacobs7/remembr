@@ -53,6 +53,10 @@ getFunctionPropertiesFromQuosure = function(qq ){
 #' Enter a link that you think documents this function well. IT will show up when you do flashcards
 #' ( not supported yet! )
 #'
+#' @param targetFunction the target function that documentation is being added for
+#' @param urls the urls that are added as documentation
+#' @param call_counts_hash_table the call count hash table ( or defaults to the remembr one)
+#'
 #' @export
 addDocumentationURL = function( targetFunction, urls , call_counts_hash_table = NULL ){
 
@@ -89,8 +93,12 @@ addDocumentationURL = function( targetFunction, urls , call_counts_hash_table = 
 #' Get documentation for a function
 #'
 #' Pass in a function and get any urls associated with it
+#'
+#' @param targetFunction a function reference that you want to get documentation urls for
+#' @param call_counts_hash_table the call counts hash table ( uses remebmr one by default )
+#'
 #' @export
-getDocumentationURLs = function( targetFunction , call_counts_hash_table ){
+getDocumentationURLs = function( targetFunction , call_counts_hash_table = NULL ){
 
   if ( is.null(call_counts_hash_table)){
     call_counts_hash_table = getCallCountsHashTable()

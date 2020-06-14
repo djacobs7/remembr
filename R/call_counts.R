@@ -78,6 +78,7 @@ nextBucket = function(bucket_id ){
 
 #' Given a bucket id, return a timer for that bucket
 #'
+#' @param bucket_id id of the bucket ( 1 through 6)
 #'
 #' @importFrom lubridate minutes
 #' @importFrom lubridate hours
@@ -227,7 +228,11 @@ getMyCalls = function(){
 #' @importFrom  lubridate as_datetime
 #' @importFrom rlang .data
 #' @import dplyr
+#' @importFrom tidyr separate
+#'
+#' @export
 convertCallCountsToHashTable = function( call_counts_hash_table , time = NULL){
+  # todo: consider making this private and calling it from within get_functions_from_files
   if ( is.null(time)){
     time = lubridate::now(tzone = 'UTC')
   }

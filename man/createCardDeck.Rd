@@ -12,7 +12,7 @@ Creates a new card deck and stores it in a local folder called 'packs'
 }
 \details{
 @param name name of the deck
-@files a vector of file names
+@param files a vector of file names
 
 @export
 }

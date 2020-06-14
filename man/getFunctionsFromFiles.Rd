@@ -11,6 +11,8 @@ getFunctionsFromFiles(paths, output_env = NULL, libraries = NULL)
 walk that directory, looking for any files that end in R or Rmd}
 
 \item{output_env}{An environment that you want the results written to.   ( TODO Deprecate)}
+
+\item{libraries}{an environment, where keys are the names of libraries.}
 }
 \description{
 In a future version:
@@ -19,8 +21,7 @@ TODO: should output a list of missing pacakges
 \examples{
 file_path = system.file( "test-files/simple_test.R", package = 'remembr')
 env = getFunctionsFromFiles(file_path)
-convertCallCountsToHashTable(env)
-
+convertCallCountsToHashTable(env$cards)
 
 
 }

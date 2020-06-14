@@ -87,10 +87,10 @@ listPackKeys = function(pack_name){
 #'  Create a deck of cards from files
 #'
 #'  Creates a new card deck and stores it in a local folder called 'packs'
-#'  (this is an alternative method (  and perhaps better ) than the method above!
+#'  This is an alternative method (  and perhaps better ) than the method above!
 #'
 #'  @param name name of the deck
-#'  @files a vector of file names
+#'  @param files a vector of file names
 #'
 #'  @export
 createCardDeck = function(name, files ){

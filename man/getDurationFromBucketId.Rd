@@ -6,6 +6,9 @@
 \usage{
 getDurationFromBucketId(bucket_id)
 }
+\arguments{
+\item{bucket_id}{id of the bucket ( 1 through 6)}
+}
 \description{
 Given a bucket id, return a timer for that bucket
 }

@@ -4,7 +4,12 @@
 \alias{getDocumentationURLs}
 \title{Get documentation for a function}
 \usage{
-getDocumentationURLs(targetFunction, call_counts_hash_table)
+getDocumentationURLs(targetFunction, call_counts_hash_table = NULL)
+}
+\arguments{
+\item{targetFunction}{a function reference that you want to get documentation urls for}
+
+\item{call_counts_hash_table}{the call counts hash table ( uses remebmr one by default )}
 }
 \description{
 Pass in a function and get any urls associated with it

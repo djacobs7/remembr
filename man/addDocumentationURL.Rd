@@ -6,6 +6,13 @@
 \usage{
 addDocumentationURL(targetFunction, urls, call_counts_hash_table = NULL)
 }
+\arguments{
+\item{targetFunction}{the target function that documentation is being added for}
+
+\item{urls}{the urls that are added as documentation}
+
+\item{call_counts_hash_table}{the call count hash table ( or defaults to the remembr one)}
+}
 \description{
 Enter a link that you think documents this function well. IT will show up when you do flashcards
 ( not supported yet! )

@@ -9,13 +9,13 @@
 #' @examples
 #' file_path = system.file( "test-files/simple_test.R", package = 'remembr')
 #' env = getFunctionsFromFiles(file_path)
-#' convertCallCountsToHashTable(env)
-#'
+#' convertCallCountsToHashTable(env$cards)
 #'
 #'
 #' @param paths a vector of paths to parse. if you pass in a directory, it will
 #' walk that directory, looking for any files that end in R or Rmd
 #' @param output_env An environment that you want the results written to.   ( TODO Deprecate)
+#' @param libraries an environment, where keys are the names of libraries.
 #'
 #' @importFrom tools file_ext
 #' @importFrom rlang parse_exprs

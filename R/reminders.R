@@ -120,6 +120,7 @@ upcomingReminders = function(num_methods = 10 ){
 #'
 #'
 #' @importFrom rlang .data
+#' @import ggplot2
 plotFlashCards = function(){
   df = convertCallCountsToHashTable(getCallCountsHashTable() )
 
